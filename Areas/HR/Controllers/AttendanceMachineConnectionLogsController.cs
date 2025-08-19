@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ServiceHub.Areas.HR.Models;
 using ServiceHub.Data;
 using System;
+using System.Buffers;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,23 +41,28 @@ namespace ServiceHub.Areas.HR.Controllers
 
             int pageSize = length != null ? Convert.ToInt32(length) : 10;
             int skip = start != null ? Convert.ToInt32(start) : 0;
-
-            var query = _dbcontext.AttendenceMachineConnectionLogs.AsQueryable();
-
-            // 🟡 Universal search filter on all relevant columns
+            var query = from log in _dbcontext.AttendenceMachineConnectionLogs
+                        join machine in _dbcontext.AttendenceMachines
+                             on log.MachineId equals machine.Id
+                             orderby log.Id descending
+                        select new
+                        {
+                            log,
+                            MachineName = machine.Name
+                        };
             if (!string.IsNullOrEmpty(searchValue))
             {
                 searchValue = searchValue.ToLower();
 
                 query = query.Where(m =>
-                    m.Id.ToString().Contains(searchValue) ||
-                    m.MachineId.ToString().ToLower().Contains(searchValue) ||
-                    m.Machine_IP.ToLower().Contains(searchValue) ||
-                    m.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue) ||
-                    (m.Connection_EndTime.HasValue && m.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue)) ||
-                    m.Status.ToLower().Contains(searchValue) ||
-                    (!string.IsNullOrEmpty(m.ErrorMessage) && m.ErrorMessage.ToLower().Contains(searchValue)) ||
-                    m.RecordsRead.ToString().Contains(searchValue)
+                    m.log.Id.ToString().Contains(searchValue) ||
+                    m.MachineName.ToLower().Contains(searchValue) ||
+                    m.log.Machine_IP.ToLower().Contains(searchValue) ||
+                    m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue) ||
+                    (m.log.Connection_EndTime.HasValue && m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue)) ||
+                    m.log.Status.ToLower().Contains(searchValue) ||
+                    (!string.IsNullOrEmpty(m.log.ErrorMessage) && m.log.ErrorMessage.ToLower().Contains(searchValue)) ||
+                    m.log.RecordsRead.ToString().Contains(searchValue)
                 );
             }
 
@@ -66,15 +72,15 @@ namespace ServiceHub.Areas.HR.Controllers
                 var isAsc = sortDirection == "asc";
                 query = sortColumnName switch
                 {
-                    "id" => isAsc ? query.OrderBy(x => x.Id) : query.OrderByDescending(x => x.Id),
-                    "machineId" => isAsc ? query.OrderBy(x => x.MachineId) : query.OrderByDescending(x => x.MachineId),
-                    "machine_IP" => isAsc ? query.OrderBy(x => x.Machine_IP) : query.OrderByDescending(x => x.Machine_IP),
-                    "connection_StartTime" => isAsc ? query.OrderBy(x => x.Connection_StartTime) : query.OrderByDescending(x => x.Connection_StartTime),
-                    "connection_EndTime" => isAsc ? query.OrderBy(x => x.Connection_EndTime) : query.OrderByDescending(x => x.Connection_EndTime),
-                    "status" => isAsc ? query.OrderBy(x => x.Status) : query.OrderByDescending(x => x.Status),
-                    "errorMessage" => isAsc ? query.OrderBy(x => x.ErrorMessage) : query.OrderByDescending(x => x.ErrorMessage),
-                    "recordsRead" => isAsc ? query.OrderBy(x => x.RecordsRead) : query.OrderByDescending(x => x.RecordsRead),
-                    _ => query.OrderByDescending(x => x.Id)
+                    "id" => isAsc ? query.OrderBy(x => x.log.Id) : query.OrderByDescending(x => x.log.Id),
+                    "machineName" => isAsc ? query.OrderBy(x => x.MachineName) : query.OrderByDescending(x => x.MachineName),
+                    "machine_IP" => isAsc ? query.OrderBy(x => x.log.Machine_IP) : query.OrderByDescending(x => x.log.Machine_IP),
+                    "connection_StartTime" => isAsc ? query.OrderBy(x => x.log.Connection_StartTime) : query.OrderByDescending(x => x.log.Connection_StartTime),
+                    "connection_EndTime" => isAsc ? query.OrderBy(x => x.log.Connection_EndTime) : query.OrderByDescending(x => x.log.Connection_EndTime),
+                    "status" => isAsc ? query.OrderBy(x => x.log.Status) : query.OrderByDescending(x => x.log.Status),
+                    "errorMessage" => isAsc ? query.OrderBy(x => x.log.ErrorMessage) : query.OrderByDescending(x => x.log.ErrorMessage),
+                    "recordsRead" => isAsc ? query.OrderBy(x => x.log.RecordsRead) : query.OrderByDescending(x => x.log.RecordsRead),
+                    _ => query.OrderByDescending(x => x.log.Id)
                 };
             }
 
@@ -85,15 +91,15 @@ namespace ServiceHub.Areas.HR.Controllers
 
             var data = queryData.Select(m => new
             {
-                id = m.Id,
-                machineId = m.MachineId,
-                machine_IP = m.Machine_IP,
-                connection_StartTime = m.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt"),
-                connection_EndTime = m.Connection_EndTime.HasValue ? m.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt") : "N/A",
-                status = m.Status,
-                errorMessage = m.ErrorMessage,
-                recordsRead = m.RecordsRead,
-                lastFetching = GetTimeAgo(m.Connection_StartTime, currentTime)
+                id = m.log.Id,
+                machineName = m.MachineName,
+                machine_IP = m.log.Machine_IP,
+                connection_StartTime = m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt"),
+                connection_EndTime = m.log.Connection_EndTime.HasValue ? m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt") : "N/A",
+                status = m.log.Status,
+                errorMessage = m.log.ErrorMessage,
+                recordsRead = m.log.RecordsRead,
+                lastFetching = GetTimeAgo(m.log.Connection_StartTime, currentTime)
             }).ToList();
 
             return Json(new
@@ -120,22 +126,29 @@ namespace ServiceHub.Areas.HR.Controllers
         [HttpGet]
         public async Task<IActionResult> ExportConnectionLogs(string search = null, string sortColumn = null, string sortDirection = null)
         {
-            var query = _dbcontext.AttendenceMachineConnectionLogs.AsQueryable();
-
+            var query = from log in _dbcontext.AttendenceMachineConnectionLogs
+                        join machine in _dbcontext.AttendenceMachines
+                             on log.MachineId equals machine.Id
+                        orderby log.Id descending
+                        select new
+                        {
+                            log,
+                            MachineName = machine.Name
+                        };
             // Apply search filter
             if (!string.IsNullOrEmpty(search))
             {
-                var searchValue = search.ToLower();
+                search = search.ToLower();
 
                 query = query.Where(m =>
-                    m.Id.ToString().Contains(searchValue) ||
-                    m.MachineId.ToString().Contains(searchValue) ||
-                    m.Machine_IP.ToLower().Contains(searchValue) ||
-                    m.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").Contains(searchValue, StringComparison.OrdinalIgnoreCase) ||
-                    (m.Connection_EndTime.HasValue && m.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").Contains(searchValue, StringComparison.OrdinalIgnoreCase)) ||
-                    m.Status.ToLower().Contains(searchValue) ||
-                    (!string.IsNullOrEmpty(m.ErrorMessage) && m.ErrorMessage.ToLower().Contains(searchValue)) ||
-                    m.RecordsRead.ToString().Contains(searchValue)
+                    m.log.Id.ToString().Contains(search) ||
+                    m.MachineName.ToLower().Contains(search) || 
+                    m.log.Machine_IP.ToLower().Contains(search) ||
+                    m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(search) ||
+                    (m.log.Connection_EndTime.HasValue && m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(search)) ||
+                    m.log.Status.ToLower().Contains(search) ||
+                    (!string.IsNullOrEmpty(m.log.ErrorMessage) && m.log.ErrorMessage.ToLower().Contains(search)) ||
+                    m.log.RecordsRead.ToString().Contains(search)
                 );
             }
 
@@ -145,69 +158,59 @@ namespace ServiceHub.Areas.HR.Controllers
                 var isAsc = sortDirection == "asc";
                 query = sortColumn switch
                 {
-                    "id" => isAsc ? query.OrderBy(x => x.Id) : query.OrderByDescending(x => x.Id),
-                    "machineId" => isAsc ? query.OrderBy(x => x.MachineId) : query.OrderByDescending(x => x.MachineId),
-                    "machine_IP" => isAsc ? query.OrderBy(x => x.Machine_IP) : query.OrderByDescending(x => x.Machine_IP),
-                    "connection_StartTime" => isAsc ? query.OrderBy(x => x.Connection_StartTime) : query.OrderByDescending(x => x.Connection_StartTime),
-                    "connection_EndTime" => isAsc ? query.OrderBy(x => x.Connection_EndTime) : query.OrderByDescending(x => x.Connection_EndTime),
-                    "status" => isAsc ? query.OrderBy(x => x.Status) : query.OrderByDescending(x => x.Status),
-                    "errorMessage" => isAsc ? query.OrderBy(x => x.ErrorMessage) : query.OrderByDescending(x => x.ErrorMessage),
-                    "recordsRead" => isAsc ? query.OrderBy(x => x.RecordsRead) : query.OrderByDescending(x => x.RecordsRead),
-                    _ => query.OrderByDescending(x => x.Id)
+                    "id" => isAsc ? query.OrderBy(x => x.log.Id) : query.OrderByDescending(x => x.log.Id),
+                    "machineName" => isAsc ? query.OrderBy(x => x.MachineName) : query.OrderByDescending(x => x.MachineName), 
+                    "machine_IP" => isAsc ? query.OrderBy(x => x.log.Machine_IP) : query.OrderByDescending(x => x.log.Machine_IP),
+                    "connection_StartTime" => isAsc ? query.OrderBy(x => x.log.Connection_StartTime) : query.OrderByDescending(x => x.log.Connection_StartTime),
+                    "connection_EndTime" => isAsc ? query.OrderBy(x => x.log.Connection_EndTime) : query.OrderByDescending(x => x.log.Connection_EndTime),
+                    "status" => isAsc ? query.OrderBy(x => x.log.Status) : query.OrderByDescending(x => x.log.Status),
+                    "errorMessage" => isAsc ? query.OrderBy(x => x.log.ErrorMessage) : query.OrderByDescending(x => x.log.ErrorMessage),
+                    "recordsRead" => isAsc ? query.OrderBy(x => x.log.RecordsRead) : query.OrderByDescending(x => x.log.RecordsRead),
+                    _ => query.OrderByDescending(x => x.log.Id)
                 };
             }
 
             // Fetch all filtered & sorted records
             var records = await query.Select(m => new
             {
-                Id = m.Id,
-                MachineId = m.MachineId,
-                Machine_IP = m.Machine_IP,
-                Connection_StartTime = m.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt"),
-                Connection_EndTime = m.Connection_EndTime.HasValue
-                                     ? m.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt")
-                                     : "N/A",
-                Status = m.Status,
-                ErrorMessage = m.ErrorMessage ?? "N/A",
-                RecordsRead = m.RecordsRead,
-                LastFetching = GetConnectionTimeAgo(m.Connection_StartTime, DateTime.Now)
+                Id = m.log.Id,
+                MachineName = m.MachineName, 
+                Machine_IP = m.log.Machine_IP,
+                Connection_StartTime = m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt"),
+                Connection_EndTime = m.log.Connection_EndTime.HasValue
+                         ? m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt")
+                         : "N/A",
+                Status = m.log.Status,
+                ErrorMessage = m.log.ErrorMessage ?? "N/A",
+                RecordsRead = m.log.RecordsRead,
+                LastFetching = GetConnectionTimeAgo(m.log.Connection_StartTime, DateTime.Now)
             }).ToListAsync();
-
-            // Optional: Limit max number of records to prevent memory issues
-            //const int MAX_RECORDS = 100_000;
-            //if (records.Count > MAX_RECORDS)
-            //{
-            //    return BadRequest($"Too many records ({records.Count}). Please refine your filters.");
-            //}
-
             // Generate Excel file
             using (var workbook = new XLWorkbook())
             {
                 IXLWorksheet worksheet = workbook.Worksheets.Add("Connection Logs");
 
                 // Headers
-                worksheet.Cell(1, 1).Value = "ID";
-                worksheet.Cell(1, 2).Value = "Machine ID";
-                worksheet.Cell(1, 3).Value = "Machine IP";
-                worksheet.Cell(1, 4).Value = "Connection Start Time";
-                worksheet.Cell(1, 5).Value = "Connection End Time";
-                worksheet.Cell(1, 6).Value = "Status";
-                worksheet.Cell(1, 7).Value = "Error Message";
-                worksheet.Cell(1, 8).Value = "Records Read";
-                worksheet.Cell(1, 9).Value = "Last Fetching";
+                worksheet.Cell(1, 1).Value = "Machine Name";
+                worksheet.Cell(1, 2).Value = "Machine IP";
+                worksheet.Cell(1, 3).Value = "Connection Start Time";
+                worksheet.Cell(1, 4).Value = "Connection End Time";
+                worksheet.Cell(1, 5).Value = "Status";
+                worksheet.Cell(1, 6).Value = "Error Message";
+                worksheet.Cell(1, 7).Value = "Records Read";
+                worksheet.Cell(1, 8).Value = "Last Fetching";
 
                 int row = 2;
                 foreach (var record in records)
                 {
-                    worksheet.Cell(row, 1).Value = record.Id;
-                    worksheet.Cell(row, 2).Value = record.MachineId;
-                    worksheet.Cell(row, 3).Value = record.Machine_IP;
-                    worksheet.Cell(row, 4).Value = record.Connection_StartTime;
-                    worksheet.Cell(row, 5).Value = record.Connection_EndTime;
-                    worksheet.Cell(row, 6).Value = record.Status;
-                    worksheet.Cell(row, 7).Value = record.ErrorMessage;
-                    worksheet.Cell(row, 8).Value = record.RecordsRead;
-                    worksheet.Cell(row, 9).Value = record.LastFetching;
+                    worksheet.Cell(row, 1).Value = record.MachineName;
+                    worksheet.Cell(row, 2).Value = record.Machine_IP;
+                    worksheet.Cell(row, 3).Value = record.Connection_StartTime;
+                    worksheet.Cell(row, 4).Value = record.Connection_EndTime;
+                    worksheet.Cell(row, 5).Value = record.Status;
+                    worksheet.Cell(row, 6).Value = record.ErrorMessage;
+                    worksheet.Cell(row, 7).Value = record.RecordsRead;
+                    worksheet.Cell(row, 8).Value = record.LastFetching;
 
                     row++;
                 }

@@ -74,8 +74,8 @@
                 <table id="connectionLogsTable" class="table table-striped table-bordered table-responsive" style="width:100% !important">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Machine ID</th>
+                           <th style="display:none">ID</th> 
+                            <th>Machine Name</th>
                             <th>Machine IP</th>
                             <th>Connection Start Time</th>
                             <th>Connection End Time</th>
@@ -104,8 +104,8 @@
                     "type": "POST"
                 },
                 "columns": [
-                    { "data": "id" },
-                    { "data": "machineId" },
+                    { "data": "id" , "visible": false},
+                    { "data": "machineName" },
                     { "data": "machine_IP"},
                     { "data": "connection_StartTime"},
                     { "data": "connection_EndTime", "defaultContent": "" },
