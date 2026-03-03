@@ -205,7 +205,7 @@ namespace ServiceHub.Areas.HR.Controllers
                                     employees.AddRange(nestedArray.Select(emp => new
                                     {
                                         EmpNo = (string)emp["EmpNo"],
-                                        EmpName = (string)emp["EmpName"]
+                                        EmpName = (string?)emp["EmpName"]
                                     }));
                                 }
                                 else
@@ -214,7 +214,7 @@ namespace ServiceHub.Areas.HR.Controllers
                                     employees.Add(new
                                     {
                                         EmpNo = (string)item["EmpNo"],
-                                        EmpName = (string)item["EmpName"]
+                                        EmpName = (string?)item["EmpName"]
                                     });
                                 }
                             }
@@ -255,7 +255,8 @@ namespace ServiceHub.Areas.HR.Controllers
         public class EmployeeTransfer
         {
             public string EmpNo { get; set; }
-            public string EmpName { get; set; }
+            // EmpName is optional - transfers can be done with EmpNo only
+            public string? EmpName { get; set; }
         }
     }
 }

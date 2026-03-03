@@ -293,16 +293,19 @@
                     // Append each employee by index
                     for (var i = 0; i < employees.length; i++) {
                         var employee = employees[i];
-                        // Ensure empNo and empName exist and are not empty
-                        if (employee.empNo && employee.empName) {
+                        // Handle possible casing differences in JSON (EmpNo / empNo)
+                        var empNo = employee.EmpNo || employee.empNo;
+                        var empName = employee.EmpName || employee.empName || '';
+                        // If we have EmpNo, add to dropdown. EmpName is optional.
+                        if (empNo) {
+                            var displayText = empName ? (empNo + ' - ' + empName) : empNo;
                             $("#employeeDropdown").append(
-                                `<option value='${employee.empNo}'>${employee.empNo} - ${employee.empName}</option>`
+                                `<option value='${empNo}'>${displayText}</option>`
                             );
                         }
                     }
                    // Refresh Select2 after appending options
                     $("#employeeDropdown").trigger("change");
-                    alert("Employees fetched and appended successfully.");
                 },
                 error: function (xhr, status, error) {
                     alert("Failed to fetch employees: " + error);
@@ -352,8 +355,8 @@
                                 return;
                             }
                             employees = response.map(emp => ({
-                                EmpNo: emp.EmpNo,
-                                EmpName: emp.EmpName
+                                EmpNo: emp.EmpNo || emp.empNo,
+                                EmpName: emp.EmpName || emp.empName || null
                             }));
                         },
                         error: function (xhr, status, error) {
