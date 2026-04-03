@@ -1,4 +1,9 @@
-﻿namespace ServiceHub.Controllers
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Extensions.Configuration;
+
+namespace ServiceHub.Controllers
 {
     public class TimeWindowService
     {
@@ -7,19 +12,34 @@
 
         public TimeWindowService(IConfiguration configuration)
         {
-            _runTimes = configuration.GetValue<string>("RunTimes")
-            .Split(',')
-            .Select(TimeSpan.Parse)
-            .ToList();
+            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
 
-            _transferTimes = configuration.GetValue<string>("TransferRunTimes")
-                .Split(',')
-                .Select(TimeSpan.Parse)
-                .ToList();
+            var runTimesStr = configuration.GetValue<string>("RunTimes");
+            _runTimes = string.IsNullOrWhiteSpace(runTimesStr)
+                ? new List<TimeSpan>()
+                : runTimesStr
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => TimeSpan.Parse(s.Trim()))
+                    .OrderBy(t => t)
+                    .ToList();
+
+            var transferTimesStr = configuration.GetValue<string>("TransferRunTimes");
+            _transferTimes = string.IsNullOrWhiteSpace(transferTimesStr)
+                ? new List<TimeSpan>()
+                : transferTimesStr
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => TimeSpan.Parse(s.Trim()))
+                    .OrderBy(t => t)
+                    .ToList();
         }
 
         public bool IsTransferWindowOpen()
         {
+            if (!_runTimes.Any() || !_transferTimes.Any())
+            {
+                return false;
+            }
+
             var now = DateTime.Now.TimeOfDay;
 
             // Find the next runtime after each transfer time
@@ -39,6 +59,11 @@
 
         public string GetTransferWindowMessage()
         {
+            if (!_transferTimes.Any() || !_runTimes.Any())
+            {
+                return "No transfer windows configured.";
+            }
+
             var windows = new List<string>();
 
             foreach (var transferTime in _transferTimes)
@@ -57,14 +82,17 @@
             var now = DateTime.Now.TimeOfDay;
 
             // If currently in a transfer window, return time until it ends
-            foreach (var transferTime in _transferTimes)
+            if (_transferTimes.Any() && _runTimes.Any())
             {
-                var nextRuntime = _runTimes.FirstOrDefault(r => r > transferTime);
-                var windowEnd = nextRuntime != default ? nextRuntime : _runTimes.First().Add(TimeSpan.FromDays(1));
-
-                if (now >= transferTime && now < windowEnd)
+                foreach (var transferTime in _transferTimes)
                 {
-                    return windowEnd - now;
+                    var nextRuntime = _runTimes.FirstOrDefault(r => r > transferTime);
+                    var windowEnd = nextRuntime != default ? nextRuntime : _runTimes.First().Add(TimeSpan.FromDays(1));
+
+                    if (now >= transferTime && now < windowEnd)
+                    {
+                        return windowEnd - now;
+                    }
                 }
             }
 

@@ -15,10 +15,16 @@ public class ServiceHubContext : IdentityDbContext<ApplicationUser>
     public DbSet<AttendanceMachineConnectionLog> AttendenceMachineConnectionLogs { get; set; }
     public DbSet<HRSwapRecord> HR_Swap_Record { get; set; }
     public DbSet<PasswordChangeLog> PasswordChangeLog { get; set; }
+    public DbSet<ServiceHub.Areas.HR.Models.EmployeeEnrollment> EmployeeEnrollments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);        
+        // Simple index for faster lookups
+        builder.Entity<ServiceHub.Areas.HR.Models.EmployeeEnrollment>(b =>
+        {
+            b.HasIndex(e => new { e.EmployeeCode, e.MachineId }).IsUnique(false);
+        });
 
     }
 }

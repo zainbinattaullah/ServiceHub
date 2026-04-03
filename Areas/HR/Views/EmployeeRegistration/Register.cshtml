@@ -1,0 +1,129 @@
+@model ServiceHub.Models.EmployeeViewModel
+
+@{
+    ViewData["Title"] = "Register Employee";
+}
+
+<style>
+    .Cust-card-margin { margin: 5px !important; }
+    .form-label-col { text-align: right; }
+    .form-group { margin-bottom: 12px; }
+</style>
+
+<div class="row">
+    <div class="col-lg-12">
+         <div id="transferWindowInfo" class="mt-2"></div>
+        <div class="card Cust-card-margin">
+            <div class="card-header">
+                <div class="card-title">
+                    <h3>Register Employee</h3>
+                </div>
+            </div>
+            <div class="card-body">
+               
+                @if (ViewBag.Message != null)
+                {
+                    <div class="alert alert-success">@ViewBag.Message</div>
+                }
+                @if (ViewBag.Alert != null)
+                {
+                    <div class="alert alert-danger">@ViewBag.Alert</div>
+                }
+
+                @using (Html.BeginForm("Register", "EmployeeRegistration", new { area = "HR" }, FormMethod.Post, null, new { @class = "mt-3" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @* show model-level validation messages *@
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+
+                    <div class="row mt-3">
+                        <div class="col-md-2 form-label-col">
+                            @Html.LabelFor(m => m.EmployeeCode)
+                        </div>
+                        <div class="col-md-4">
+                            @Html.TextBoxFor(m => m.EmployeeCode, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.EmployeeCode, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-2 form-label-col">
+                            @Html.LabelFor(m => m.EmployeeName)
+                        </div>
+                        <div class="col-md-4">
+                            @Html.TextBoxFor(m => m.EmployeeName, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.EmployeeName, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-2 form-label-col">
+                            @Html.LabelFor(m => m.MachineIP)
+                        </div>
+                        <div class="col-md-4">
+                            @Html.DropDownListFor(m => m.MachineIP, Model.MachineIPs ?? Enumerable.Empty<SelectListItem>(), "-- Select Machine IP --", new { @class = "form-control", id = "machineIpSelect" })
+                            @Html.ValidationMessageFor(m => m.MachineIP, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-2 form-label-col">
+                            @Html.LabelFor(m => m.Privilege)
+                        </div>
+                        <div class="col-md-4">
+                            @if (Model.PrivilegeOptions != null && Model.PrivilegeOptions.Any())
+                            {
+                                @Html.DropDownListFor(m => m.Privilege, Model.PrivilegeOptions, "-- Select Privilege --", new { @class = "form-control" })
+                            }
+                            else
+                            {
+                                @Html.TextBoxFor(m => m.Privilege, new { @class = "form-control" })
+                            }
+                            @Html.ValidationMessageFor(m => m.Privilege, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-2"></div>
+                        <div class="col-md-4">
+                            <button id="registerBtn" type="submit" class="btn btn-primary" @(ViewBag.IsTransferWindowOpen == false ? "disabled" : "")>Register</button>
+                        </div>
+                    </div>
+                }                
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link href="~/css/select2.css" rel="stylesheet" />
+    <script src="~/js/select2.js"></script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            $('#machineIpSelect').select2({
+                placeholder: '-- Select Machine IP --',
+                allowClear: true,
+                width: '100%'
+            });
+            // Poll transfer window state and enable/disable register button
+            function checkTransferWindow() {
+                $.get('/HR/TransferEmployee_API/CheckTransferWindow', function(data) {
+                    var isOpen = !!data.isOpen;
+                    $('#registerBtn').prop('disabled', !isOpen);
+                    if (!isOpen) {
+                        $('#transferWindowInfo').html('<div class="alert alert-danger">' + data.message + '</div>');
+                    } else {
+                        $('#transferWindowInfo').empty();
+                    }
+                }).always(function() {
+                    // re-check after the suggested interval or 30s
+                    setTimeout(checkTransferWindow, 30000);
+                });
+            }
+
+            checkTransferWindow();
+        });
+    </script>
+}

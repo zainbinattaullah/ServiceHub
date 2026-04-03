@@ -48,8 +48,8 @@ namespace ServiceHub.Areas.HR.Controllers
                 query = query.Where(m =>
                     m.Name.Contains(searchValue) ||
                     m.IpAddress.Contains(searchValue) ||
-                    m.Description.Contains(searchValue) ||
-                    m.Location.Contains(searchValue) ||
+                    (m.Description ?? "").Contains(searchValue) ||
+                    (m.Location ?? "").Contains(searchValue) ||
                     (search == "yes" && m.IsActive) ||
                     (search == "no" && !m.IsActive) ||
                     (search == "all" && m.IsFetchAll) ||
@@ -127,6 +127,12 @@ namespace ServiceHub.Areas.HR.Controllers
         public async Task<IActionResult> Create([Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
         {           
 
+            // Guard against null model binding
+            if (attendanceMachine == null)
+            {
+                return BadRequest();
+            }
+
             if (ModelState.IsValid)
             {
                 if (attendanceMachine.Port < 1 || attendanceMachine.Port > 65535)
@@ -162,6 +168,12 @@ namespace ServiceHub.Areas.HR.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
         {
+            // Guard against null model binding
+            if (attendanceMachine == null)
+            {
+                return NotFound();
+            }
+
             if (id != attendanceMachine.Id)
             {
                 return NotFound();
@@ -213,8 +225,8 @@ namespace ServiceHub.Areas.HR.Controllers
                 query = query.Where(m =>
                     m.Name.Contains(searchValue) ||
                     m.IpAddress.Contains(searchValue) ||
-                    m.Description.Contains(searchValue) ||
-                    m.Location.Contains(searchValue) ||
+                    (m.Description ?? "").Contains(searchValue) ||
+                    (m.Location ?? "").Contains(searchValue) ||
                     (search == "yes" && m.IsActive) ||
                     (search == "no" && !m.IsActive) ||
                     (search == "all" && m.IsFetchAll) ||

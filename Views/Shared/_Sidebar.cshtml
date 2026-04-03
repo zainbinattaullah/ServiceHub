@@ -139,9 +139,9 @@
                     </ul>
                 </li>
 
-                <!-- Fetch Attendance -->
+                <!-- Transfer Employee -->
                 <li class="nav-item">
-                    <a href="#" class="nav-link" id="attendance-swaps">
+                    <a href="#" class="nav-link" id="transfer-employee-parent">
                         <i class="nav-icon bi bi-arrow-left-right"></i>
                         <p>
                             Transfer Employee
@@ -150,9 +150,34 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a asp-area="HR" asp-controller="TransferEmployee_API" asp-action="Index" class="nav-link" id="view-swaps">
+                            <a asp-area="HR" asp-controller="TransferEmployee_API" asp-action="Index" class="nav-link" id="transfer-employee-index">
                                 <i class="nav-icon bi bi-box-arrow-right"></i>
                                 <p>Transfer</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Employee Management -->
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="employee-parent">
+                        <i class="nav-icon bi bi-people-fill"></i>
+                        <p>
+                            Employees
+                            <i class="nav-arrow bi bi-chevron-right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a asp-area="HR" asp-controller="EmployeeRegistration" asp-action="Register" class="nav-link" id="employee-register">
+                                <i class="nav-icon bi bi-person-plus"></i>
+                                <p>Register Employee</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-area="HR" asp-controller="Enrollment" asp-action="Index" class="nav-link" id="employee-enrollments">
+                                <i class="nav-icon bi bi-list-ul"></i>
+                                <p>Enrolled Users</p>
                             </a>
                         </li>
                     </ul>
@@ -212,32 +237,85 @@
 <script src="/cust_theme_comp/js/jquery-3.7.0.min.js"></script>
 <script>
     $(document).ready(function () {
-        // Retrieve the active menu item from localStorage
-        var activeMenu = localStorage.getItem('activeMenu');
-        if (activeMenu) {
-            // Remove active class from all menu items
-            $('.nav-link').removeClass('active');
-            // Add active class to the stored menu item
-            $(activeMenu).addClass('active');
-            // Ensure the parent menu stays open
-            $(activeMenu).closest('.nav-treeview').show();
-            $(activeMenu).closest('.nav-item').addClass('menu-open');
-        }
-        // Handle click event on menu items
-        $('.nav-link').on('click', function () {
-            // Remove active class from all menu items
-            $('.nav-link').removeClass('active');
-            // Add active class to the clicked menu item
-            $(this).addClass('active');
-            // Ensure the parent menu stays open
-            var parentTreeview = $(this).closest('.nav-treeview');
-            var parentNavItem = parentTreeview.closest('.nav-item');
-            if (parentTreeview.length) {
-                parentTreeview.show();
-                parentNavItem.addClass('menu-open');
+        // Utility to open parent tree for a child link
+        function openParentForChild($child) {
+            var $tree = $child.closest('.nav-treeview');
+            if ($tree.length) {
+                $tree.show();
+                $tree.closest('.nav-item').addClass('menu-open');
             }
-            // Store the active menu item in localStorage
-            localStorage.setItem('activeMenu', '#' + $(this).attr('id'));
+        }
+
+        // Set active item by selector (child or parent). Does not collapse other open parents.
+        function setActiveBySelector(selector) {
+            var $el = $(selector);
+            if (!$el.length) return;
+
+            // clear active from links only (keep other open menus intact)
+            $('.nav-link').removeClass('active');
+
+            // if selector points to a parent that has children, just open it (don't mark parent active)
+            if ($el.siblings('.nav-treeview').length) {
+                $el.siblings('.nav-treeview').show();
+                $el.parent('.nav-item').addClass('menu-open');
+            } else {
+                // child link -> mark active and open parent
+                $el.addClass('active');
+                openParentForChild($el);
+            }
+
+            localStorage.setItem('activeMenu', selector);
+        }
+
+        // Try to restore from localStorage first
+        var stored = localStorage.getItem('activeMenu');
+        if (stored && $(stored).length) {
+            setActiveBySelector(stored);
+        } else {
+            // Map current path to sidebar selectors
+            var path = window.location.pathname.toLowerCase();
+            var mapping = [
+                { path: '/hr/employeeregistration/register', sel: '#employee-register' },
+                { path: '/hr/enrollment/index', sel: '#employee-enrollments' },
+                { path: '/hr/transferemployee_api/index', sel: '#transfer-employee-index' },
+                { path: '/hr/attendancemachine/index', sel: '#view-machines' },
+                { path: '/hr/attendancemachine/create', sel: '#add-machine' },
+                { path: '/hr/attendancemachineconnectionlogs/index', sel: '#view-logs' },
+                { path: '/hr/hrswaprecords/index', sel: '#view-swaps' },
+                { path: '/home/index', sel: '#dashboard-home' }
+            ];
+
+            for (var i = 0; i < mapping.length; i++) {
+                if (path.indexOf(mapping[i].path) === 0 && $(mapping[i].sel).length) {
+                    setActiveBySelector(mapping[i].sel);
+                    break;
+                }
+            }
+        }
+
+        // Click handler: toggle parents and mark child active
+        $('.sidebar-menu').on('click', '.nav-link', function (e) {
+            var $this = $(this);
+            var $tree = $this.siblings('.nav-treeview');
+
+            // If this link has a child tree -> toggle open/close
+            if ($tree.length) {
+                e.preventDefault();
+                $tree.slideToggle(150);
+                $this.parent('.nav-item').toggleClass('menu-open', $tree.is(':visible'));
+                // don't set parent as active (only children should be highlighted)
+                return;
+            }
+
+            // Child link clicked -> mark active and ensure parent is open
+            $('.nav-link').removeClass('active');
+            $this.addClass('active');
+            openParentForChild($this);
+
+            // Persist selection
+            if ($this.attr('id')) {
+                localStorage.setItem('activeMenu', '#' + $this.attr('id'));
+            }
         });
     });
 </script>

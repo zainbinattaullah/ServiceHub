@@ -45,18 +45,22 @@ namespace ServiceHub.Areas.HR.Controllers
             byte[] cipherBytes = Convert.FromBase64String(encryptedText);
             using (Aes aes = Aes.Create())
             {
-                var pdb = new Rfc2898DeriveBytes(EncryptionKey, Encoding.ASCII.GetBytes("SaltHere123"));
-                aes.Key = pdb.GetBytes(32);
-                aes.IV = pdb.GetBytes(16);
-
-                using (var ms = new MemoryStream())
+                var salt = Encoding.ASCII.GetBytes("SaltHere123");
+                // Use a modern hash algorithm and higher iteration count to avoid SYSLIB0041
+                using (var pdb = new Rfc2898DeriveBytes(EncryptionKey, salt, 100_000, HashAlgorithmName.SHA256))
                 {
-                    using (var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+                    aes.Key = pdb.GetBytes(32);
+                    aes.IV = pdb.GetBytes(16);
+
+                    using (var ms = new MemoryStream())
                     {
-                        cs.Write(cipherBytes, 0, cipherBytes.Length);
-                        cs.Close();
+                        using (var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+                        {
+                            cs.Write(cipherBytes, 0, cipherBytes.Length);
+                            cs.Close();
+                        }
+                        return Encoding.UTF8.GetString(ms.ToArray());
                     }
-                    return Encoding.UTF8.GetString(ms.ToArray());
                 }
             }
         }

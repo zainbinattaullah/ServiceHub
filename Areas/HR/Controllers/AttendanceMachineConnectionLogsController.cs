@@ -6,6 +6,7 @@ using ServiceHub.Areas.HR.Models;
 using ServiceHub.Data;
 using System;
 using System.Buffers;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -30,17 +31,17 @@ namespace ServiceHub.Areas.HR.Controllers
         [HttpPost]
         public async Task<IActionResult> GetConnectionLogs()
         {
-            var request = HttpContext.Request.Form;
-            var draw = request["draw"].FirstOrDefault();
-            var start = request["start"].FirstOrDefault();
-            var length = request["length"].FirstOrDefault();
-            var searchValue = request["search[value]"].FirstOrDefault();
-            var sortColumnIndex = request["order[0][column]"].FirstOrDefault();
-            var sortColumnName = request[$"columns[{sortColumnIndex}][data]"].FirstOrDefault();
-            var sortDirection = request["order[0][dir]"].FirstOrDefault();
+            var request = HttpContext?.Request?.Form;
+            var draw = request?["draw"].FirstOrDefault() ?? string.Empty;
+            var start = request?["start"].FirstOrDefault() ?? string.Empty;
+            var length = request?["length"].FirstOrDefault() ?? string.Empty;
+            var searchValue = request?["search[value]"].FirstOrDefault() ?? string.Empty;
+            var sortColumnIndex = request?["order[0][column]"].FirstOrDefault() ?? string.Empty;
+            var sortColumnName = request?[$"columns[{sortColumnIndex}][data]"].FirstOrDefault() ?? string.Empty;
+            var sortDirection = request?["order[0][dir]"].FirstOrDefault() ?? string.Empty;
 
-            int pageSize = length != null ? Convert.ToInt32(length) : 10;
-            int skip = start != null ? Convert.ToInt32(start) : 0;
+            int pageSize = int.TryParse(length, out var l) ? l : 10;
+            int skip = int.TryParse(start, out var s) ? s : 0;
             var query = from log in _dbcontext.AttendenceMachineConnectionLogs
                         join machine in _dbcontext.AttendenceMachines
                              on log.MachineId equals machine.Id
@@ -56,13 +57,13 @@ namespace ServiceHub.Areas.HR.Controllers
 
                 query = query.Where(m =>
                     m.log.Id.ToString().Contains(searchValue) ||
-                    m.MachineName.ToLower().Contains(searchValue) ||
-                    m.log.Machine_IP.ToLower().Contains(searchValue) ||
+                    ((m.MachineName ?? string.Empty).ToLower().Contains(searchValue)) ||
+                    ((m.log.Machine_IP ?? string.Empty).ToLower().Contains(searchValue)) ||
                     m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue) ||
                     (m.log.Connection_EndTime.HasValue && m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(searchValue)) ||
-                    m.log.Status.ToLower().Contains(searchValue) ||
+                    ((m.log.Status ?? string.Empty).ToLower().Contains(searchValue)) ||
                     (!string.IsNullOrEmpty(m.log.ErrorMessage) && m.log.ErrorMessage.ToLower().Contains(searchValue)) ||
-                    m.log.RecordsRead.ToString().Contains(searchValue)
+                    (m.log.RecordsRead.HasValue && m.log.RecordsRead.Value.ToString().Contains(searchValue))
                 );
             }
 
@@ -142,13 +143,13 @@ namespace ServiceHub.Areas.HR.Controllers
 
                 query = query.Where(m =>
                     m.log.Id.ToString().Contains(search) ||
-                    m.MachineName.ToLower().Contains(search) || 
-                    m.log.Machine_IP.ToLower().Contains(search) ||
+                    ((m.MachineName ?? string.Empty).ToLower().Contains(search)) || 
+                    ((m.log.Machine_IP ?? string.Empty).ToLower().Contains(search)) ||
                     m.log.Connection_StartTime.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(search) ||
                     (m.log.Connection_EndTime.HasValue && m.log.Connection_EndTime.Value.ToString("dd-MMM-yyyy hh:mm tt").ToLower().Contains(search)) ||
-                    m.log.Status.ToLower().Contains(search) ||
+                    ((m.log.Status ?? string.Empty).ToLower().Contains(search)) ||
                     (!string.IsNullOrEmpty(m.log.ErrorMessage) && m.log.ErrorMessage.ToLower().Contains(search)) ||
-                    m.log.RecordsRead.ToString().Contains(search)
+                    (m.log.RecordsRead.HasValue && m.log.RecordsRead.Value.ToString().Contains(search))
                 );
             }
 

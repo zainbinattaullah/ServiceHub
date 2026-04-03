@@ -6,13 +6,15 @@ using System.Text;
 public static class PasswordEncryptionHelper
 {
     private static readonly string EncryptionKey = "MySuperSecureKey@123"; 
+    private static readonly byte[] SaltBytes = Encoding.ASCII.GetBytes("SaltHere123");
+    private const int Iterations = 100_000; // increase iteration count for PBKDF2
 
     public static string Encrypt(string plainText)
     {
         byte[] clearBytes = Encoding.UTF8.GetBytes(plainText);
         using (Aes aes = Aes.Create())
         {
-            var pdb = new Rfc2898DeriveBytes(EncryptionKey, Encoding.ASCII.GetBytes("SaltHere123"));
+            var pdb = new Rfc2898DeriveBytes(EncryptionKey, SaltBytes, Iterations, HashAlgorithmName.SHA256);
             aes.Key = pdb.GetBytes(32);
             aes.IV = pdb.GetBytes(16);
 
@@ -33,7 +35,7 @@ public static class PasswordEncryptionHelper
         byte[] cipherBytes = Convert.FromBase64String(encryptedText);
         using (Aes aes = Aes.Create())
         {
-            var pdb = new Rfc2898DeriveBytes(EncryptionKey, Encoding.ASCII.GetBytes("SaltHere123"));
+            var pdb = new Rfc2898DeriveBytes(EncryptionKey, SaltBytes, Iterations, HashAlgorithmName.SHA256);
             aes.Key = pdb.GetBytes(32);
             aes.IV = pdb.GetBytes(16);
 
