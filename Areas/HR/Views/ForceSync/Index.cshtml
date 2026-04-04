@@ -1,0 +1,770 @@
+﻿@model ServiceHub.Areas.HR.Models.ForceSyncPageViewModel
+@{
+    ViewData["Title"] = "Machine Force Sync Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    :root {
+        --navy:      #1e3a5f;
+        --success:   #198754;
+        --success-bg:#d4f5e2;
+        --failed:    #dc3545;
+        --failed-bg: #fce4e8;
+        --pending:   #0d6efd;
+        --pending-bg:#cfe2ff;
+        --progress:  #fd7e14;
+        --progress-bg:#fff3cd;
+        --online:    #20c763;
+        --card-bg:   #ffffff;
+        --border:    #dde3ec;
+        --shadow:    0 2px 12px rgba(30,58,95,0.10);
+    }
+
+    /* Monitor panel */
+    .monitor-panel {
+        background: var(--navy);
+        border-radius: 12px;
+        padding: 18px 24px;
+        margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        color: #fff;
+    }
+
+    .mp-stat { text-align: center; }
+    .mp-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .06em; opacity: .7; margin-bottom: 4px; }
+    .mp-value { font-size: 30px; font-weight: 800; font-family: 'Courier New', monospace; }
+    .mp-value.c-success  { color: #20c763; }
+    .mp-value.c-progress { color: #ffc107; }
+    .mp-value.c-failed   { color: #ff6b6b; }
+    .mp-value.c-pending  { color: #74c0fc; }
+    .mp-value.c-total    { color: #fff; }
+
+    /* Filter bar */
+    .filter-bar {
+        background: var(--card-bg); border-radius: 10px;
+        box-shadow: var(--shadow); padding: 14px 18px;
+        margin-bottom: 18px; display: flex; gap: 10px;
+        flex-wrap: wrap; align-items: flex-end;
+    }
+
+    .fg { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
+
+    .fg label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .05em; color: #6b7a94;
+    }
+
+    .fg select, .fg input[type="text"] {
+        border: 1.5px solid var(--border); border-radius: 6px;
+        padding: 5px 9px; font-size: 13px; background: #f7f9fc;
+        outline: none; height: 32px; transition: border-color .15s;
+    }
+
+    .fg select:focus, .fg input:focus { border-color: var(--navy); background: #fff; }
+
+    /* Bulk bar */
+    .bulk-bar {
+        background: #e8f4fd; border: 1.5px solid #74c0fc;
+        border-radius: 8px; padding: 10px 18px;
+        margin-bottom: 16px; display: none;
+        align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .bulk-bar.visible { display: flex; }
+    .bulk-count { font-weight: 700; color: #1864ab; font-size: 14px; }
+
+    /* Table card */
+    .table-card {
+        background: var(--card-bg); border-radius: 10px;
+        box-shadow: var(--shadow); overflow: hidden;
+    }
+    .table-card-header {
+        background: var(--navy); color: #fff; padding: 13px 20px;
+        display: flex; align-items: center;
+        justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .table-card-header h5 { margin: 0; font-size: 15px; font-weight: 700; }
+    .table-card-body { padding: 16px; }
+
+    /* Status badges */
+    .badge-success  { background: var(--success-bg); color: #0a4226;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-failed   { background: var(--failed-bg);  color: #b91c30;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-pending  { background: var(--pending-bg); color: #084298;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-inprogress { background: var(--progress-bg); color: #6a3800;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-never    { background: #f1f3f5; color: #868e96;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+
+    .badge-online  { background: var(--success-bg); color: #138a4a;
+        padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-offline { background: var(--failed-bg); color: #b91c30;
+        padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+    .badge-auto   { background: #e8eef8; color: var(--navy);
+        padding: 2px 7px; border-radius: 10px; font-size: 10px; }
+    .badge-manual { background: #f3d9fa; color: #6a0dad;
+        padding: 2px 7px; border-radius: 10px; font-size: 10px; }
+
+    .dot-pulse {
+        width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+        background: var(--online); animation: pulse-g 2s infinite; margin-right: 4px;
+    }
+
+    @@keyframes pulse-g {
+        0%   { box-shadow: 0 0 0 0 rgba(32,199,99,.5); }
+        70%  { box-shadow: 0 0 0 7px rgba(32,199,99,0); }
+        100% { box-shadow: 0 0 0 0 rgba(32,199,99,0); }
+    }
+
+    .btn-sync { background: var(--navy); color:#fff; border:none;
+        border-radius:5px; padding: 3px 10px; font-size:12px; cursor:pointer; }
+    .btn-sync:hover { background: #2d5a96; }
+    .btn-sync:disabled { background: #adb5bd; cursor: not-allowed; }
+    .btn-history { background: #6c757d; color:#fff; border:none;
+        border-radius:5px; padding: 3px 8px; font-size:11px; cursor:pointer; }
+    .btn-history:hover { background: #5a6268; }
+
+    .btn-refresh {
+        background: transparent; border: 1.5px solid rgba(255,255,255,.5);
+        color: #fff; border-radius: 6px; padding: 4px 14px;
+        font-size: 12px; cursor: pointer; transition: all .15s;
+    }
+    .btn-refresh:hover { background: rgba(255,255,255,.15); }
+    @@keyframes spin-it { to { transform: rotate(360deg); } }
+    .btn-refresh.spinning i { animation: spin-it .7s linear infinite; }
+
+    #syncTable thead th {
+        background: #f0f4fa; color: var(--navy);
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .04em; border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+    #syncTable tbody tr:hover { background: #f7f9fd; }
+
+    /* Row highlight when syncing */
+    .row-syncing td { background: #fffbe6 !important; }
+    .row-success td { background: #f0fdf4 !important; transition: background 1s; }
+    .row-failed  td { background: #fff5f5 !important; transition: background 1s; }
+
+    .hist-table th { background: #1e3a5f; color:#fff; font-size:12px; }
+    .hist-table td { font-size:12px; }
+
+    @@media (max-width: 992px) { .monitor-panel { grid-template-columns: repeat(3,1fr); } }
+    @@media (max-width: 576px) { .monitor-panel { grid-template-columns: repeat(2,1fr); } }
+</style>
+
+<div class="container-fluid" style="padding:20px 16px;">
+
+    <!-- Live Monitor Panel -->
+    <div class="monitor-panel">
+        <div class="mp-stat">
+            <div class="mp-label">Total Machines</div>
+            <div class="mp-value c-total"  id="mpTotal">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label">Sync Completed</div>
+            <div class="mp-value c-success" id="mpCompleted">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label">In Progress</div>
+            <div class="mp-value c-progress" id="mpInProgress">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label">Failed</div>
+            <div class="mp-value c-failed"  id="mpFailed">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label">Pending</div>
+            <div class="mp-value c-pending" id="mpPending">--</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="fg">
+            <label>Region</label>
+            <select id="fRegion">
+                <option value="">All Regions</option>
+                @foreach (var r in Model.Regions)
+                {
+                    <option value="@r">@r</option>
+                }
+            </select>
+        </div>
+        <div class="fg">
+            <label>Area</label>
+            <select id="fArea">
+                <option value="">All Areas</option>
+                @foreach (var a in Model.Areas)
+                {
+                    <option value="@a">@a</option>
+                }
+            </select>
+        </div>
+        <div class="fg">
+            <label>Branch</label>
+            <select id="fLoc">
+                <option value="">All Branches</option>
+                @foreach (var s in Model.Stores)
+                {
+                    <option value="@s.StoreCode">@s.StoreName</option>
+                }
+            </select>
+        </div>
+        <div class="fg">
+            <label>Machine</label>
+            <input type="text" id="fMachine" placeholder="Name or ID..." />
+        </div>
+        <div class="fg">
+            <label>Connectivity</label>
+            <select id="fConn">
+                <option value="">All</option>
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+            </select>
+        </div>
+        <div class="fg">
+            <label>Sync Status</label>
+            <select id="fStatus">
+                <option value="">All</option>
+                <option value="Success">Success</option>
+                <option value="Failed">Failed</option>
+                <option value="InProgress">In Progress</option>
+                <option value="Pending">Pending</option>
+            </select>
+        </div>
+        <div class="fg" style="flex-direction:row;align-items:flex-end;gap:6px;min-width:auto;">
+            <button class="btn btn-primary btn-sm" id="btnApply" style="height:32px;padding:0 14px;">
+                <i class="fas fa-filter"></i> Apply
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="btnClear" style="height:32px;padding:0 12px;">
+                <i class="fas fa-times"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Bulk Action Bar -->
+    <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-count"><i class="fas fa-check-square"></i> <span id="selectedCount">0</span> machine(s) selected</span>
+        <button class="btn btn-primary btn-sm" id="btnSyncSelected">
+            <i class="fas fa-sync-alt"></i> Sync Selected
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="btnClearSel">
+            <i class="fas fa-times"></i> Clear Selection
+        </button>
+
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <select id="bulkGroupType" class="form-select form-select-sm" style="width:120px;">
+                <option value="">Sync by...</option>
+                <option value="area">Area</option>
+                <option value="region">Region</option>
+                <option value="branch">Branch</option>
+                <option value="all">All Machines</option>
+            </select>
+            <select id="bulkGroupValue" class="form-select form-select-sm" style="width:180px;display:none;">
+                <option value="">Select...</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btnGroupSync">
+                <i class="fas fa-sync-alt"></i> Sync Group
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="table-card">
+        <div class="table-card-header">
+            <h5><i class="fas fa-sync-alt" style="margin-right:8px;"></i>Machine Force Sync Dashboard</h5>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:11px;color:rgba(255,255,255,.7);">
+                    <span class="dot-pulse"></span>Auto-refresh 30s
+                </span>
+                <button class="btn-refresh" id="btnRefresh">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+        <div class="table-card-body">
+            <table id="syncTable" class="table table-striped table-bordered table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:36px;"><input type="checkbox" id="chkAll" /></th>
+                        <th>Machine</th>
+                        <th>Branch / Store</th>
+                        <th>Area</th>
+                        <th>Region</th>
+                        <th>Connectivity</th>
+                        <th>Last Sync</th>
+                        <th>Status</th>
+                        <th>Type</th>
+                        <th>Duration</th>
+                        <th>Records</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--navy);color:#fff;">
+                <h5 class="modal-title"><i class="fas fa-sync-alt me-2"></i>Confirm Force Sync</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmBody" style="font-size:15px;"></p>
+                <div class="alert alert-info py-2" style="font-size:13px;">
+                    <i class="fas fa-info-circle me-1"></i>
+                    The Windows service will execute the sync immediately regardless of the scheduled attendance time windows.
+                    Your regular schedule will continue working normally.
+                </div>
+                <div class="mb-2">
+                    <label style="font-size:12px;font-weight:600;color:#6b7a94;">Notes (optional)</label>
+                    <textarea id="syncNotes" class="form-control form-control-sm" rows="2"
+                              placeholder="Reason for force sync..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" id="btnConfirmSync">
+                    <i class="fas fa-sync-alt me-1"></i> Start Sync
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--navy);color:#fff;">
+                <h5 class="modal-title"><i class="fas fa-history me-2"></i>Sync History</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:0;">
+                <div id="historyContent" style="padding:16px;">
+                    <div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div style="position:fixed;bottom:24px;right:24px;z-index:9999;">
+    <div id="resultToast" class="toast align-items-center border-0">
+        <div class="d-flex">
+            <div class="toast-body" id="toastBody" style="font-size:14px;font-weight:600;"></div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(function () {
+
+    if (typeof $.fn.DataTable === 'undefined') { console.error('DataTables not loaded.'); return; }
+
+    // ----------------------------------------------------------------
+    //  State
+    // ----------------------------------------------------------------
+    var selectedMachines  = {};       // { id: name }
+    var pendingPoll       = {};       // { logId: machineId } — live polling
+    var pollTimer         = null;
+    var confirmMachineIds = [];
+    var autoRefreshTimer  = null;
+
+    // Bulk group data for populating select
+    var areaMap   = {};
+    var regionMap = {};
+    var branchMap = {};
+
+    // ----------------------------------------------------------------
+    //  Monitor panel animation
+    // ----------------------------------------------------------------
+    function animCount(id, val) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+    }
+
+    // ----------------------------------------------------------------
+    //  Status badge renderer
+    // ----------------------------------------------------------------
+    function renderStatus(row) {
+        if (row.hasPending) {
+            if (row.pendingStatus === 'InProgress') {
+                return '<span class="badge-inprogress"><i class="fas fa-spinner fa-spin me-1"></i>In Progress</span>';
+            }
+            return '<span class="badge-pending"><i class="fas fa-clock me-1"></i>Pending</span>';
+        }
+        var s = row.lastSyncStatus || 'Never';
+        if (s === 'Success')    return '<span class="badge-success"><i class="fas fa-check me-1"></i>Success</span>';
+        if (s === 'Failed')     return '<span class="badge-failed"><i class="fas fa-times me-1"></i>Failed</span>';
+        if (s === 'InProgress') return '<span class="badge-inprogress"><i class="fas fa-spinner fa-spin me-1"></i>In Progress</span>';
+        if (s === 'Pending')    return '<span class="badge-pending"><i class="fas fa-clock me-1"></i>Pending</span>';
+        return '<span class="badge-never">Never</span>';
+    }
+
+    function renderConn(isOnline) {
+        return isOnline
+            ? '<span class="badge-online"><span class="dot-pulse"></span>Online</span>'
+            : '<span class="badge-offline"><i class="fas fa-times-circle me-1"></i>Offline</span>';
+    }
+
+    function renderType(t) {
+        if (t === 'Auto')   return '<span class="badge-auto">Auto</span>';
+        if (t === 'Manual') return '<span class="badge-manual">Manual</span>';
+        return '—';
+    }
+
+    function renderActions(row) {
+        var disabled = row.hasPending ? 'disabled' : '';
+        var syncBtn  = '<button class="btn-sync me-1" ' + disabled
+            + ' onclick="singleSync(' + row.machineId + ',\'' + esc(row.machineName) + '\')">'
+            + '<i class="fas fa-sync-alt"></i> Sync</button>';
+        var histBtn  = '<button class="btn-history" onclick="showHistory(' + row.machineId
+            + ',\'' + esc(row.machineName) + '\')">'
+            + '<i class="fas fa-history"></i></button>';
+        return syncBtn + histBtn;
+    }
+
+    function renderChk(row) {
+        var chk = selectedMachines[row.machineId] ? 'checked' : '';
+        return '<input type="checkbox" class="row-chk" data-id="' + row.machineId
+             + '" data-name="' + esc(row.machineName) + '" ' + chk + ' />';
+    }
+
+    function esc(s) { return (s||'').replace(/'/g,"\\'"); }
+
+    // ----------------------------------------------------------------
+    //  DataTable
+    // ----------------------------------------------------------------
+    var table = $('#syncTable').DataTable({
+        processing : true,
+        serverSide : true,
+        ajax: {
+            url  : '/HR/ForceSync/GetDashboardData',
+            type : 'POST',
+            data : function (d) {
+                d.filterRegion   = $('#fRegion').val();
+                d.filterArea     = $('#fArea').val();
+                d.filterLocation = $('#fLoc').val();
+                d.filterMachine  = $('#fMachine').val();
+                d.filterConn     = $('#fConn').val();
+                d.filterStatus   = $('#fStatus').val();
+                return d;
+            },
+            dataSrc: function (json) {
+                var rows = json.data || [];
+                var s    = json.stats || {};
+
+                // Update monitor panel
+                animCount('mpTotal',      json.recordsTotal || 0);
+                animCount('mpCompleted',  s.completed   || 0);
+                animCount('mpInProgress', s.inProgress  || 0);
+                animCount('mpFailed',     s.failed      || 0);
+                animCount('mpPending',    s.pending     || 0);
+
+                // Build lookup maps for group sync selects
+                areaMap = {}; regionMap = {}; branchMap = {};
+                rows.forEach(function (r) {
+                    if (r.area)      { if (!areaMap[r.area])         areaMap[r.area]         = []; areaMap[r.area].push(r.machineId); }
+                    if (r.region)    { if (!regionMap[r.region])     regionMap[r.region]     = []; regionMap[r.region].push(r.machineId); }
+                    if (r.location)  { if (!branchMap[r.location])   branchMap[r.location]   = []; branchMap[r.location].push(r.machineId); }
+                });
+
+                return rows;
+            },
+            error: function (xhr, err) { console.error('ForceSync AJAX:', err); }
+        },
+        columns: [
+            { data: null, orderable: false,
+              render: function (d, t, row) { return renderChk(row); }, width: '36px' },
+            { data: 'machineName', defaultContent: '',
+              render: function (d, t, row) {
+                return '<strong>' + (d||'') + '</strong><br>'
+                     + '<small style="color:#6b7a94;">' + (row.machineIP||'') + '</small>';
+              }},
+            { data: 'storeName', defaultContent: 'N/A',
+              render: function (d, t, row) {
+                return (d||'N/A') + (row.location
+                    ? '<br><small style="color:#6b7a94;">' + row.location + '</small>' : '');
+              }},
+            { data: 'area',   defaultContent: '—' },
+            { data: 'region', defaultContent: '—' },
+            { data: 'isOnline', orderable: false,
+              render: function (d) { return renderConn(d); }},
+            { data: 'lastSyncLabel', defaultContent: 'Never' },
+            { data: null, orderable: false,
+              render: function (d, t, row) { return renderStatus(row); }},
+            { data: 'lastSyncType', defaultContent: '—',
+              render: function (d) { return renderType(d); }},
+            { data: 'lastSyncDurationLabel', defaultContent: '—', className: 'text-center' },
+            { data: 'lastRecordsFetched',    defaultContent: '0', className: 'text-center' },
+            { data: null, orderable: false,
+              render: function (d, t, row) { return renderActions(row); }}
+        ],
+        pageLength : 25,
+        lengthMenu : [[10,25,50,100],[10,25,50,100]],
+        order      : [[1,'asc']],
+        dom: '<"row"<"col-sm-4"l><"col-sm-8"f>>'
+           + '<"row"<"col-sm-12"tr>>'
+           + '<"row"<"col-sm-5"i><"col-sm-7"p>>',
+        language: {
+            processing : '<i class="fas fa-spinner fa-spin"></i> Loading...',
+            emptyTable : 'No machines found.'
+        }
+    });
+
+    // ----------------------------------------------------------------
+    //  Checkbox selection
+    // ----------------------------------------------------------------
+    $('#syncTable').on('change', '.row-chk', function () {
+        var id   = parseInt($(this).data('id'), 10);
+        var name = $(this).data('name');
+        if ($(this).is(':checked')) selectedMachines[id] = name;
+        else delete selectedMachines[id];
+        updateBulkBar();
+    });
+
+    $('#chkAll').on('change', function () {
+        var chk = $(this).is(':checked');
+        $('#syncTable .row-chk').each(function () {
+            $(this).prop('checked', chk);
+            var id = parseInt($(this).data('id'), 10);
+            if (chk) selectedMachines[id] = $(this).data('name');
+            else delete selectedMachines[id];
+        });
+        updateBulkBar();
+    });
+
+    function updateBulkBar() {
+        var n = Object.keys(selectedMachines).length;
+        $('#selectedCount').text(n);
+        if (n > 0) $('#bulkBar').addClass('visible');
+        else       $('#bulkBar').removeClass('visible');
+    }
+
+    $('#btnClearSel').on('click', function () {
+        selectedMachines = {};
+        $('#syncTable .row-chk, #chkAll').prop('checked', false);
+        updateBulkBar();
+    });
+
+    // ----------------------------------------------------------------
+    //  Group sync dropdown
+    // ----------------------------------------------------------------
+    $('#bulkGroupType').on('change', function () {
+        var type = $(this).val();
+        var sel  = $('#bulkGroupValue');
+        sel.empty().append('<option value="">Select...</option>');
+
+        if (type === 'all') { sel.hide(); return; }
+        sel.show();
+
+        var map = type === 'area' ? areaMap : type === 'region' ? regionMap : branchMap;
+        Object.keys(map).sort().forEach(function (k) {
+            sel.append('<option value="' + k + '">' + k + ' (' + map[k].length + ' machines)</option>');
+        });
+    });
+
+    $('#btnGroupSync').on('click', function () {
+        var type  = $('#bulkGroupType').val();
+        var value = $('#bulkGroupValue').val();
+        var ids   = [];
+
+        if (type === 'all') {
+            table.rows().data().each(function (row) { ids.push(row.machineId); });
+        } else if (type && value) {
+            var map = type === 'area' ? areaMap : type === 'region' ? regionMap : branchMap;
+            ids = (map[value] || []);
+        }
+
+        if (ids.length === 0) { showToast('No machines found for selected group.', 'warning'); return; }
+        confirmMachineIds = ids;
+        openConfirm(ids.length + ' machine(s) in ' + (type === 'all' ? 'All Machines' : value));
+    });
+
+    // ----------------------------------------------------------------
+    //  Single and bulk sync triggers
+    // ----------------------------------------------------------------
+    window.singleSync = function (machineId, machineName) {
+        confirmMachineIds = [machineId];
+        openConfirm(machineName + ' (ID: ' + machineId + ')');
+    };
+
+    $('#btnSyncSelected').on('click', function () {
+        var ids = Object.keys(selectedMachines).map(Number);
+        if (ids.length === 0) return;
+        confirmMachineIds = ids;
+        openConfirm(ids.length + ' selected machine(s)');
+    });
+
+    function openConfirm(label) {
+        $('#confirmBody').html('You are about to force sync <strong>' + label + '</strong>.');
+        $('#syncNotes').val('');
+        new bootstrap.Modal(document.getElementById('confirmModal')).show();
+    }
+
+    $('#btnConfirmSync').on('click', function () {
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        executeSync(confirmMachineIds, $('#syncNotes').val());
+        confirmMachineIds = [];
+    });
+
+    // ----------------------------------------------------------------
+    //  Execute sync — POST to controller
+    // ----------------------------------------------------------------
+    function executeSync(machineIds, notes) {
+        $.ajax({
+            url        : '/HR/ForceSync/QueueSync',
+            type       : 'POST',
+            contentType: 'application/json',
+            data       : JSON.stringify({ machineIds: machineIds, notes: notes }),
+            success    : function (res) {
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    // Register log IDs for live polling
+                    if (res.logIds && res.logIds.length > 0) {
+                        res.logIds.forEach(function (lid, i) {
+                            pendingPoll[lid] = machineIds[i];
+                        });
+                        startPolling();
+                    }
+                    table.ajax.reload(null, false);
+                    selectedMachines = {};
+                    updateBulkBar();
+                } else {
+                    showToast(res.message || 'Failed to queue sync.', 'danger');
+                }
+            },
+            error: function () { showToast('Server error. Please retry.', 'danger'); }
+        });
+    }
+
+    // ----------------------------------------------------------------
+    //  Live polling — checks status of queued syncs every 3 seconds
+    // ----------------------------------------------------------------
+    function startPolling() {
+        if (pollTimer) return; // already running
+        pollTimer = setInterval(function () {
+            var ids = Object.keys(pendingPoll).join(',');
+            if (!ids) { clearInterval(pollTimer); pollTimer = null; return; }
+
+            $.get('/HR/ForceSync/PollStatus?logIds=' + ids, function (statuses) {
+                statuses.forEach(function (s) {
+                    if (s.status === 'Success' || s.status === 'Failed') {
+                        var msg = s.status === 'Success'
+                            ? 'Machine ' + s.machineId + ' sync completed. Records: ' + (s.recordsFetched || 0)
+                            : 'Machine ' + s.machineId + ' sync failed: ' + (s.errorMessage || 'Unknown error');
+                        showToast(msg, s.status === 'Success' ? 'success' : 'danger');
+                        delete pendingPoll[s.id];
+                    }
+                });
+                // Reload table to update status badges
+                table.ajax.reload(null, false);
+                // Stop polling when all done
+                if (Object.keys(pendingPoll).length === 0) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                }
+            });
+        }, 3000);
+    }
+
+    // ----------------------------------------------------------------
+    //  History modal
+    // ----------------------------------------------------------------
+    window.showHistory = function (machineId, machineName) {
+        $('#historyContent').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i></div>');
+        $('#historyModal .modal-title').html('<i class="fas fa-history me-2"></i>Sync History — ' + machineName);
+        new bootstrap.Modal(document.getElementById('historyModal')).show();
+
+        $.get('/HR/ForceSync/GetSyncHistory?machineId=' + machineId, function (logs) {
+            if (!logs || logs.length === 0) {
+                $('#historyContent').html('<div class="text-center text-muted py-3">No history found.</div>');
+                return;
+            }
+            var html = '<table class="table table-sm table-striped table-bordered hist-table mb-0">'
+                     + '<thead><tr><th>Type</th><th>Status</th><th>Requested</th>'
+                     + '<th>Completed</th><th>Records</th><th>Duration</th><th>By</th><th>Notes</th></tr></thead><tbody>';
+            logs.forEach(function (l) {
+                var stBadge = l.status === 'Success'
+                    ? '<span class="badge-success">Success</span>'
+                    : l.status === 'Failed'
+                        ? '<span class="badge-failed">Failed</span>'
+                        : '<span class="badge-pending">' + l.status + '</span>';
+                var dur = l.durationSeconds != null
+                    ? (l.durationSeconds < 60 ? l.durationSeconds + 's' : Math.floor(l.durationSeconds/60) + 'm ' + (l.durationSeconds%60) + 's')
+                    : '—';
+                html += '<tr>'
+                      + '<td>' + (l.syncType === 'Manual' ? '<span class="badge-manual">Manual</span>' : '<span class="badge-auto">Auto</span>') + '</td>'
+                      + '<td>' + stBadge + (l.errorMessage ? '<br><small class="text-danger">' + l.errorMessage + '</small>' : '') + '</td>'
+                      + '<td>' + l.requestedAt + '</td>'
+                      + '<td>' + l.completedAt + '</td>'
+                      + '<td class="text-center">' + (l.recordsFetched || 0) + '</td>'
+                      + '<td class="text-center">' + dur + '</td>'
+                      + '<td>' + (l.requestedByUserName || '—') + '</td>'
+                      + '<td>' + (l.notes || '—') + '</td>'
+                      + '</tr>';
+            });
+            html += '</tbody></table>';
+            $('#historyContent').html(html);
+        });
+    };
+
+    // ----------------------------------------------------------------
+    //  Filters
+    // ----------------------------------------------------------------
+    $('#btnApply').on('click', function () { table.ajax.reload(); });
+    $('#btnClear').on('click', function () {
+        $('#fRegion,#fArea,#fLoc,#fConn,#fStatus').val('');
+        $('#fMachine').val('');
+        table.ajax.reload();
+    });
+
+    // ----------------------------------------------------------------
+    //  Refresh button + auto-refresh 30s
+    // ----------------------------------------------------------------
+    $('#btnRefresh').on('click', function () {
+        var btn = $(this);
+        btn.addClass('spinning').prop('disabled', true);
+        table.ajax.reload(function () {
+            btn.removeClass('spinning').prop('disabled', false);
+        });
+    });
+
+    autoRefreshTimer = setInterval(function () {
+        table.ajax.reload(null, false);
+    }, 30000);
+
+    // ----------------------------------------------------------------
+    //  Toast helper
+    // ----------------------------------------------------------------
+    function showToast(message, type) {
+        var colors = { success: '#198754', danger: '#dc3545', warning: '#856404' };
+        var el = document.getElementById('resultToast');
+        $('#toastBody').text(message);
+        el.style.background = colors[type] || '#0d6efd';
+        el.style.color      = '#fff';
+        new bootstrap.Toast(el, { delay: 6000 }).show();
+    }
+
+});
+</script>
+
+@Html.AntiForgeryToken()
+}
