@@ -1,100 +1,69 @@
-﻿@model ServiceHub.Areas.HR.Models.AttendanceMachine
+@model ServiceHub.Areas.HR.Models.AttendanceMachine
 
 @{
     ViewData["Title"] = "Create Attendance Machine";
+    ViewData["PageIcon"] = "fas fa-plus-circle";
 }
 
-<style>
-    .card-margin {
-        margin: 5px;
-    }
-
-    .form-group-margin {
-        margin: 5px;
-    }
-
-    .mt-5 {
-        margin-top: 2rem !important;
-    }
-</style>
-
 <div class="row">
-    <form asp-action="Create">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card card-margin">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <h2>Create Attendance Machine</h2>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <a class="btn btn-sm btn-gradient-success" asp-action="Index">
+                    <i class="fas fa-list me-1"></i> Back to List
+                </a>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label">Name</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IpAddress" class="form-label">IP Address</label>
+                            <input asp-for="IpAddress" class="form-control" />
+                            <span asp-validation-for="IpAddress" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DeviceModel" class="form-label">Device Model</label>
+                            <input asp-for="DeviceModel" class="form-control" />
+                            <span asp-validation-for="DeviceModel" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Port" class="form-label">Port</label>
+                            <input asp-for="Port" type="number" min="1" max="65535" class="form-control" />
+                            <span asp-validation-for="Port" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Location" class="form-label">Location</label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center gap-4 pt-4">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" asp-for="IsActive" class="form-check-input" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input type="checkbox" asp-for="IsFetchAll" class="form-check-input" />
+                                <label asp-for="IsFetchAll" class="form-check-label">Fetch All Records</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-gradient">
+                                <i class="fas fa-save me-1"></i> Create
+                            </button>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="Name" class="control-label"></label>
-                                    <input asp-for="Name" class="form-control" />
-                                    <span asp-validation-for="Name" class="text-danger"></span>
-                                </div>
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="IpAddress" class="control-label">IP Address</label>
-                                    <input asp-for="IpAddress" class="form-control" />
-                                    <span asp-validation-for="IpAddress" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="DeviceModel" class="control-label">Device Model</label>
-                                    <input asp-for="DeviceModel" class="form-control" />
-                                    <span asp-validation-for="DeviceModel" class="text-danger"></span>
-                                </div>
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="Port" class="control-label"></label>
-                                    <input asp-for="Port" type="number" min="1" max="65535" class="form-control" />
-                                    <span asp-validation-for="Port" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="Location" class="control-label"></label>
-                                    <input asp-for="Location" class="form-control" />
-                                    <span asp-validation-for="Location" class="text-danger"></span>
-                                </div>
-                                <div class="form-group form-group-margin mt-5">
-                                    <label asp-for="IsActive" class="form-check-label">Active</label>
-                                    <input type="checkbox" asp-for="IsActive" class="form-check-input" />
-                                    <span asp-validation-for="IsActive" class="text-danger"></span>
-
-                                    <label asp-for="IsFetchAll" class="form-check-label">Fetch All Record</label>
-                                    <input type="checkbox" asp-for="IsFetchAll" class="form-check-input" />
-                                    <span asp-validation-for="IsFetchAll" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group form-group-margin">
-                                    <label asp-for="Description" class="control-label"></label>
-                                    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                                    <span asp-validation-for="Description" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group form-group-margin">
-                                    <input type="submit" value="Create" class="btn btn-primary" />
-                                    <a class="btn btn-success" asp-action="Index">List</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
-    </form>
+    </div>
 </div>

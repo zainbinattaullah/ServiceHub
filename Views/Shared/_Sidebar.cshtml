@@ -1,343 +1,128 @@
-﻿<style>
-    /* Add left margin for 2nd level menu items */
-    .nav-treeview .nav-item {
-        /* Adjust the margin as needed */
-        margin-left: 20px !important; 
-    }
-
-    /* Style for active menu item */
-    .nav-item .nav-link.active {
-        /* Primary color */
-        background-color: #007bff !important; 
-        /* Text color for active item */
-        color: white !important; 
-    }
-
-    /* Hover effect for menu items */
-    .nav-item .nav-link:hover {
-        /* Darker shade for hover */
-        background-color: #0056b3 !important;
-        color: white !important;
-    }
-
-    /* Style for active child menu item */
-    .nav-treeview .nav-item .nav-link.active {
-        /* Primary color */
-        background-color: #007bff !important; 
-        /* Text color for active item */
-        color: white !important; 
-    }
-
-    /* Ensure the parent menu remains open when a child is active */
-    .nav-item.menu-open > .nav-treeview {
-        /* Force the child menu to stay open */
-        display: block !important; 
-    }
-</style>
-
-
 <!--begin::Sidebar-->
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
-    <!--begin::Sidebar Brand-->
+
+    <!--begin::Brand-->
     <div class="sidebar-brand">
-        <!--begin::Brand Link-->
-        <a href="./index.html" class="brand-link">
-            <!--begin::Brand Image-->
-            <img src="/cust_theme_comp/assets/img/vp_icon.png" alt="AdminLTE Logo" class="brand-image opacity-75 shadow">
-            <!--end::Brand Image-->
-            <!--begin::Brand Text-->
-            <span class="brand-text fw-light">Service Hub</span>
-            <!--end::Brand Text-->
+        <a href="/Home/Index" class="brand-link d-flex align-items-center gap-2">
+            <img src="/cust_theme_comp/assets/img/logo.png"
+                 alt="Service Hub"
+                 class="brand-image opacity-75 shadow"
+                 style="height:200px !important;width:auto">
+            @* <span class="brand-text fw-semibold">Service Group</span> *@
         </a>
-        <!--end::Brand Link-->
     </div>
-    <!--end::Sidebar Brand-->
+    <!--end::Brand-->
+
     <!--begin::Sidebar Wrapper-->
     <div class="sidebar-wrapper">
         <nav class="mt-2">
-            <!--begin::Sidebar Menu-->
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
-                <!-- Dashboard -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="dashboard">
-                        <i class="nav-icon bi bi-speedometer2"></i>
-                        <p>
-                            Dashboard
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="" asp-controller="Home" asp-action="Index" class="nav-link" id="dashboard-home">
-                                <i class="nav-icon bi bi-house-door-fill"></i>
-                                <p>Dashboard</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+            <!--
+                NOTE: data-lte-toggle="treeview" is intentionally removed.
+                Our own jQuery below handles open/close so AdminLTE's handler
+                does not fire a second time (which would cancel the first toggle).
+            -->
+            <ul class="nav sidebar-menu flex-column"
+                role="menu">
 
-                <!-- Attendance Machine -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="attendance-machine">
-                        <i class="nav-icon bi bi-device-ssd"></i>
-                        <p>
-                            Attendance Machine
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="AttendanceMachine" asp-action="Create" class="nav-link" id="add-machine">
-                                <i class="nav-icon bi bi-plus-circle"></i>
-                                <p>Add New Machine</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="AttendanceMachine" asp-action="Index" class="nav-link" id="view-machines">
-                                <i class="nav-icon bi bi-list-check"></i>
-                                <p>Machines View</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+                <!-- ── Dynamic role-based menu from DB ────────────────── -->
+                @await Component.InvokeAsync("SidebarMenu")
 
-                <!-- Machine Logs -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="machine-logs">
-                        <i class="nav-icon bi bi-file-earmark-text"></i>
-                        <p>
-                            Machine Logs
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="MachineHealth" asp-action="Index" class="nav-link" id="view-Health">
-                                <i class="nav-icon bi bi-clock-history"></i>
-                                <p>Machines Health</p>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="AttendanceMachineConnectionLogs" asp-action="Index" class="nav-link" id="view-logs">
-                                <i class="nav-icon bi bi-clock-history"></i>
-                                <p>Logs View</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <!-- Swaps -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="attendance-swaps">
-                        <i class="nav-icon bi bi-clock-history"></i>
-                        <p>
-                            Attendance
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="HRSwapRecords" asp-action="Index" class="nav-link" id="view-swaps">
-                                <i class="nav-icon bi bi-repeat"></i>
-                                <p>Swaps View</p>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="AttendanceReport" asp-action="Index" class="nav-link" id="view-attendancereports">
-                                <i class="nav-icon bi bi-repeat"></i>
-                                <p>Attendance Report</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <!-- Transfer Employee -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="transfer-employee-parent">
-                        <i class="nav-icon bi bi-arrow-left-right"></i>
-                        <p>
-                            Transfer Employee
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="TransferEmployee_API" asp-action="Index" class="nav-link" id="transfer-employee-index">
-                                <i class="nav-icon bi bi-box-arrow-right"></i>
-                                <p>Transfer</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <!-- Employee Management -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="employee-parent">
-                        <i class="nav-icon bi bi-people-fill"></i>
-                        <p>
-                            Employees
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="EmployeeRegistration" asp-action="Register" class="nav-link" id="employee-register">
-                                <i class="nav-icon bi bi-person-plus"></i>
-                                <p>Register Employee</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="Enrollment" asp-action="Index" class="nav-link" id="employee-enrollments">
-                                <i class="nav-icon bi bi-list-ul"></i>
-                                <p>Enrolled Users</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="EmployeeDetailReport" asp-action="Index" class="nav-link" id="employee-detail-report">
-                                <i class="nav-icon bi bi-person-lines-fill"></i>
-                                <p>Employee Detail Report</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <!-- Change Password -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" id="ChangeAdminPassword">
-                        <i class="nav-icon bi bi-shield-lock"></i> 
-                        <p>
-                            Change Admin Password
-                            <i class="nav-arrow bi bi-chevron-down"></i> 
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a asp-area="HR" asp-controller="PasswordChange" asp-action="Index" class="nav-link" id="view-swaps">
-                                <i class="nav-icon bi bi-key"></i>
-                                <p>Change</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <!-- Decrypt  Password -->
-                @{
-                    var userName = User.Identity?.Name?.ToLower();
-                }
-                @if (userName == "test@gmail.com")
+                <!-- ── Admin-only fixed items ─────────────────────────── -->
+                @if (User.IsInRole("Admin"))
                 {
+                    <!-- ── User Administration (treeview) ─────────── -->
                     <li class="nav-item">
-                        <a href="#" class="nav-link" id="ChangeAdminPassword">
-                            <i class="nav-icon bi bi-shield-lock-fill"></i>
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-users-cog"></i>
                             <p>
-                                Decrypt Password
-                                <i class="nav-arrow bi bi-chevron-down ms-2"></i>
+                                User Administration
+                                <i class="nav-arrow fas fa-angle-right"></i>
                             </p>
                         </a>
-                        <ul class="nav nav-treeview">
+                        <ul class="nav nav-treeview" style="display:none;">
                             <li class="nav-item">
-                                <a asp-area="HR" asp-controller="AdminDecrypt" asp-action="Index" class="nav-link" id="view-swaps">
-                                    <i class="nav-icon bi bi-unlock"></i>
-                                    <p>Decrypt</p>
+                                <a href="/Identity/Account/Register" class="nav-link">
+                                    <i class="nav-icon fas fa-user-plus"></i>
+                                    <p>Create User</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/Identity/Account/Manage/ChangePassword" class="nav-link">
+                                    <i class="nav-icon fas fa-key"></i>
+                                    <p>Change Password</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
+
+                    <li class="nav-item">
+                        <a asp-area="HR"
+                           asp-controller="MenuManagement"
+                           asp-action="Index"
+                           class="nav-link">
+                            <i class="nav-icon fas fa-list-alt"></i>
+                            <p>Menu Management</p>
+                        </a>
+                    </li>
                 }
 
             </ul>
-            <!--end::Sidebar Menu-->
         </nav>
     </div>
     <!--end::Sidebar Wrapper-->
-</aside> 
+</aside>
 <!--end::Sidebar-->
-<!-- jQuery -->
 
-<script src="/cust_theme_comp/js/jquery-3.7.0.min.js"></script>
+<!-- Sidebar script — active state + treeview toggle -->
 <script>
-    $(document).ready(function () {
-        // Utility to open parent tree for a child link
-        function openParentForChild($child) {
-            var $tree = $child.closest('.nav-treeview');
-            if ($tree.length) {
-                $tree.show();
-                $tree.closest('.nav-item').addClass('menu-open');
-            }
+$(document).ready(function () {
+
+    var currentPath = window.location.pathname.toLowerCase();
+
+    // ── 1. Auto-mark active child links and open their parent ───────────
+    $('.nav-treeview .nav-link').each(function () {
+        var href = $(this).attr('href') || '';
+        if (href !== '#' && currentPath.indexOf(href.toLowerCase()) === 0) {
+            $(this).addClass('active');
+            var $tree = $(this).closest('.nav-treeview');
+            $tree.show();
+            $tree.closest('.nav-item').addClass('menu-open');
         }
-
-        // Set active item by selector (child or parent). Does not collapse other open parents.
-        function setActiveBySelector(selector) {
-            var $el = $(selector);
-            if (!$el.length) return;
-
-            // clear active from links only (keep other open menus intact)
-            $('.nav-link').removeClass('active');
-
-            // if selector points to a parent that has children, just open it (don't mark parent active)
-            if ($el.siblings('.nav-treeview').length) {
-                $el.siblings('.nav-treeview').show();
-                $el.parent('.nav-item').addClass('menu-open');
-            } else {
-                // child link -> mark active and open parent
-                $el.addClass('active');
-                openParentForChild($el);
-            }
-
-            localStorage.setItem('activeMenu', selector);
-        }
-
-        // Try to restore from localStorage first
-        var stored = localStorage.getItem('activeMenu');
-        if (stored && $(stored).length) {
-            setActiveBySelector(stored);
-        } else {
-            // Map current path to sidebar selectors
-            var path = window.location.pathname.toLowerCase();
-            var mapping = [
-                { path: '/hr/employeeregistration/register', sel: '#employee-register' },
-                { path: '/hr/enrollment/index', sel: '#employee-enrollments' },
-                { path: '/hr/transferemployee_api/index', sel: '#transfer-employee-index' },
-                { path: '/hr/attendancemachine/index', sel: '#view-machines' },
-                { path: '/hr/attendancemachine/create', sel: '#add-machine' },
-                { path: '/hr/attendancemachineconnectionlogs/index', sel: '#view-logs' },
-                { path: '/hr/hrswaprecords/index', sel: '#view-swaps' },
-                { path: '/home/index', sel: '#dashboard-home' }
-            ];
-
-            for (var i = 0; i < mapping.length; i++) {
-                if (path.indexOf(mapping[i].path) === 0 && $(mapping[i].sel).length) {
-                    setActiveBySelector(mapping[i].sel);
-                    break;
-                }
-            }
-        }
-
-        // Click handler: toggle parents and mark child active
-        $('.sidebar-menu').on('click', '.nav-link', function (e) {
-            var $this = $(this);
-            var $tree = $this.siblings('.nav-treeview');
-
-            // If this link has a child tree -> toggle open/close
-            if ($tree.length) {
-                e.preventDefault();
-                $tree.slideToggle(150);
-                $this.parent('.nav-item').toggleClass('menu-open', $tree.is(':visible'));
-                // don't set parent as active (only children should be highlighted)
-                return;
-            }
-
-            // Child link clicked -> mark active and ensure parent is open
-            $('.nav-link').removeClass('active');
-            $this.addClass('active');
-            openParentForChild($this);
-
-            // Persist selection
-            if ($this.attr('id')) {
-                localStorage.setItem('activeMenu', '#' + $this.attr('id'));
-            }
-        });
     });
+
+    // ── 2. Auto-mark active top-level standalone links ───────────────────
+    $('.sidebar-menu > .nav-item > .nav-link').each(function () {
+        var href = $(this).attr('href') || '';
+        if (href !== '#' && currentPath.indexOf(href.toLowerCase()) === 0) {
+            $(this).addClass('active');
+        }
+    });
+
+    // ── 3. Click handler — group toggle + leaf active ────────────────────
+    $('.sidebar-menu').on('click', '.nav-link', function (e) {
+        var $this    = $(this);
+        var $tree    = $this.siblings('.nav-treeview');
+
+        if ($tree.length) {
+            // Group header — toggle submenu
+            e.preventDefault();
+            e.stopImmediatePropagation();   // prevent AdminLTE re-firing
+            var opening = !$tree.is(':visible');
+            $tree.slideToggle(160);
+            $this.closest('.nav-item').toggleClass('menu-open', opening);
+            return;
+        }
+
+        // Leaf link — update active state
+        $('.sidebar-menu .nav-link').removeClass('active');
+        $this.addClass('active');
+
+        // Keep the parent group visible
+        var $parentTree = $this.closest('.nav-treeview');
+        if ($parentTree.length) {
+            $parentTree.show();
+            $parentTree.closest('.nav-item').addClass('menu-open');
+        }
+    });
+});
 </script>

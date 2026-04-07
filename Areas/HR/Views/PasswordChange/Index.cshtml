@@ -1,106 +1,55 @@
-﻿@{
+@{
     ViewData["Title"] = "Change Device Password";
+    ViewData["PageIcon"] = "fas fa-key";
 }
-<style>
-    .Cust-card-margin {
-        margin: 5px !important;
-    }
-
-    .time-window-alert {
-        margin-bottom: 20px;
-        padding: 15px;
-        border-radius: 4px;
-    }
-
-    .time-window-open {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-
-    .time-window-closed {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-</style>
 
 <link href="~/css/select2.css" rel="stylesheet" />
+
 <div class="row">
-    <div class="col-lg-12">
-        <div class="time-window-alert @(ViewBag.IsTransferWindowOpen ? "time-window-open" : "time-window-closed")">
+    <div class="col-lg-8">
+        <div id="windowAlert" class="time-window-alert @(ViewBag.IsTransferWindowOpen ? "time-window-open" : "time-window-closed") mb-3" style="padding:15px; border-radius:8px;">
             @ViewBag.TransferWindowMessage
-            <div id="nextWindowChange"></div>
+            <div id="nextWindowChange" class="mt-1 fw-bold"></div>
         </div>
 
-        <div class="card Cust-card-margin">
-            <div class="card-header">
-                <div class="card-title">
-                    <h2>Change Device User Password</h2>
-                </div>
-            </div>
+        <div class="card">
             <div class="card-body">
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label for="machineSelect">Select Machine :</label>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="machineSelect" class="form-label">Select Machine</label>
+                        <select id="machineSelect" class="form-select"></select>
                     </div>
-                    <div class="col-md-4">
-                        <select id="machineSelect" class="form-control"></select>
-                    </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label for="port">Port:</label>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
+                        <label for="port" class="form-label">Port</label>
                         <input type="text" id="port" class="form-control" readonly />
                     </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label>User ID:</label>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
+                        <label for="userId" class="form-label">User ID</label>
                         <input type="text" id="userId" class="form-control" />
                     </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label>Old Password:</label>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <label for="oldPassword" class="form-label">Old Password</label>
                         <div class="input-group">
                             <input type="password" id="oldPassword" class="form-control" />
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#oldPassword">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#oldPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label>New Password:</label>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
+                        <label for="newPassword" class="form-label">New Password</label>
                         <div class="input-group">
                             <input type="password" id="newPassword" class="form-control" />
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#newPassword">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#newPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div class="row mt-4">
-                    <div class="col-md-6 offset-md-2">
-                        <button id="changePasswordBtn" class="btn btn-primary" @(ViewBag.IsTransferWindowOpen ? "" : "disabled")>Change Password</button>
+                    <div class="col-12">
+                        <button id="changePasswordBtn" class="btn btn-gradient" @(ViewBag.IsTransferWindowOpen ? "" : "disabled")>
+                            <i class="fas fa-save me-1"></i> Change Password
+                        </button>
                     </div>
                 </div>
             </div>
@@ -108,13 +57,26 @@
     </div>
 </div>
 
+<style>
+    .time-window-open {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .time-window-closed {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+
 @section Scripts {
     <script src="~/js/select2.js"></script>
     <script>
         function checkTransferWindow() {
             $.get("/HR/PasswordChange/CheckTransferWindow", function (data) {
                 $("#changePasswordBtn").prop("disabled", !data.isOpen);
-                $(".time-window-alert")
+                $("#windowAlert")
                     .toggleClass("time-window-open", data.isOpen)
                     .toggleClass("time-window-closed", !data.isOpen);
 
@@ -124,22 +86,19 @@
                     var msg = data.isOpen
                         ? `Window closes in ${mins}m ${secs}s`
                         : `Next window opens in ${mins}m ${secs}s`;
-
                     $("#nextWindowChange").text(msg);
-
                     var checkDelay = Math.max(1000, data.nextCheckInMs - 1000);
                     setTimeout(checkTransferWindow, checkDelay);
                 }
             });
         }
 
-         $(document).on('click', '.toggle-password', function () {
+        $(document).on('click', '.toggle-password', function () {
             const targetInput = $($(this).data("target"));
             const icon = $(this).find('i');
             const isPassword = targetInput.attr("type") === "password";
-
             targetInput.attr("type", isPassword ? "text" : "password");
-            icon.toggleClass("bi-eye bi-eye-slash");
+            icon.toggleClass("fa-eye fa-eye-slash");
         });
 
         $(document).ready(function () {
@@ -186,7 +145,7 @@
                     data: JSON.stringify({ ip, port, userId, oldPassword, newPassword }),
                     success: function (res) {
                         alert(res.message || "Password changed.");
-                         location.reload();
+                        location.reload();
                     },
                     error: function (err) {
                         alert("Error: " + err.responseText);

@@ -1,29 +1,58 @@
-﻿@page
+@page
 @model IndexModel
 @{
     ViewData["Title"] = "Profile";
     ViewData["ActivePage"] = ManageNavPages.Index;
 }
 
-<div class="row justify-content-center">
-            <partial name="_StatusMessage" for="StatusMessage" />
-            <form id="profile-form" method="post">
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+<!-- Content Header -->
+<div class="manage-content-header">
+    <div class="header-icon">
+        <i class="fas fa-user"></i>
+    </div>
+    <div>
+        <h5>Profile Information</h5>
+        <p>Manage your personal details and preferences</p>
+    </div>
+</div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Username" class="form-control" placeholder="Your username" disabled />
-                    <label asp-for="Username" class="form-label"></label>
-                </div>
+<!-- Content Body -->
+<div class="manage-content-body">
+    <partial name="_StatusMessage" for="StatusMessage" />
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Your phone number" />
-                    <label asp-for="Input.PhoneNumber" class="form-label"></label>
-                    <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
-                </div>
-                <button id="update-profile-button" type="submit" class="btn btn-lg btn-primary w-100">
-                    <i class="fas fa-save"></i> Save
-                </button>
-            </form>
+    <form id="profile-form" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+        <!-- Username (read-only) -->
+        <div class="manage-field">
+            <label>Username / Email</label>
+            <div class="input-wrapper">
+                <i class="fas fa-envelope input-icon"></i>
+                <input asp-for="Username" class="form-control" disabled
+                       style="padding-left:44px;" />
+            </div>
+            <small style="color:#94a3b8; font-size:11px; margin-top:6px; display:block;">
+                <i class="fas fa-info-circle me-1"></i>Your email address cannot be changed here.
+            </small>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="manage-field">
+            <label>Phone Number</label>
+            <div class="input-wrapper">
+                <i class="fas fa-phone input-icon"></i>
+                <input asp-for="Input.PhoneNumber" class="form-control"
+                       placeholder="e.g. +92 300 1234567"
+                       style="padding-left:44px;" />
+            </div>
+            <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <!-- Submit -->
+        <button id="update-profile-button" type="submit" class="manage-submit">
+            <i class="fas fa-save"></i> Save Changes
+        </button>
+    </form>
 </div>
 
 @section Scripts {

@@ -39,125 +39,127 @@ namespace ServiceHub.Areas.HR.Controllers
         public async Task<IActionResult> GetEmployees()
         {
             var form = HttpContext.Request.Form;
-            var draw = form["draw"].FirstOrDefault() ?? "1";
-            int start = int.Parse(form["start"].FirstOrDefault() ?? "0");
+            var draw   = form["draw"].FirstOrDefault()            ?? "1";
+            int start  = int.Parse(form["start"].FirstOrDefault()  ?? "0");
             int length = int.Parse(form["length"].FirstOrDefault() ?? "25");
-            var search = (form["search[value]"].FirstOrDefault() ?? "").Trim().ToLower();
+            var search = (form["search[value]"].FirstOrDefault()   ?? "").Trim().ToLower();
 
-            // ── Step 1: Unique employees from EmployeeEnrollments ───────
-            var enrollments = await _db.EmployeeEnrollments
-                .AsNoTracking()
-                .GroupBy(e => e.EmployeeCode)
-                .Select(g => new
-                {
-                    EmpNo = g.Key,
-                    EmpName = g.Select(x => x.EmployeeName).FirstOrDefault(n => n != null) ?? "",
-                    EnrollmentDate = g.Min(x => x.CreatedAt),
-                    IsActive = g.Any(x => x.IsActive),
-                    CreatedBy = g.Select(x => x.CreatedBy).FirstOrDefault()
-                })
-                .ToListAsync();
-
-            // ── Step 2: Biometric logs (active only) ────────────────────
-            var bioLogs = await _db.EmployeeBiometricLogs
-                .AsNoTracking()
-                .Where(b => b.IsActive && b.EmpNo != null)
-                .ToListAsync();
-
-            // Group by EmpNo to get per-employee totals
-            var bioByEmp = bioLogs
-                .GroupBy(b => b.EmpNo!)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new
+            try
+            {
+                // ── Step 1: Unique employees (skip null EmployeeCode) ───
+                var enrollments = await _db.EmployeeEnrollments
+                    .AsNoTracking()
+                    .Where(e => e.EmployeeCode != null)
+                    .GroupBy(e => e.EmployeeCode!)
+                    .Select(g => new
                     {
-                        TotalFingers = g.Sum(b => b.TotalFingersEnrolled),
+                        EmpNo          = g.Key,
+                        EmpName        = g.Select(x => x.EmployeeName).FirstOrDefault(n => n != null) ?? "",
+                        EnrollmentDate = g.Min(x => x.CreatedAt),
+                        IsActive       = g.Any(x => x.IsActive),
+                        CreatedBy      = g.Select(x => x.CreatedBy).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                // ── Step 2: Biometric logs ──────────────────────────────
+                var bioLogs = await _db.Employee_Biometric_Log
+                    .AsNoTracking()
+                    .Where(b => b.IsActive && b.EmpNo != null)
+                    .ToListAsync();
+
+                var bioByEmp = bioLogs
+                    .GroupBy(b => b.EmpNo!)
+                    .ToDictionary(g => g.Key, g => new
+                    {
+                        TotalFingers  = g.Sum(b => b.TotalFingersEnrolled),
                         UniqueFingers = g.SelectMany(b => b.FingerIndexArray).Distinct().Count(),
-                        MachineCount = g.Select(b => b.MachineIP).Distinct().Count()
+                        MachineCount  = g.Select(b => b.MachineIP).Distinct().Count()
                     });
 
-            // ── Step 3: Last attendance per employee ────────────────────
-            var lastAttendance = await _db.HR_Swap_Record
-                .AsNoTracking()
-                .Where(r => r.Emp_No != null && r.Swap_Time != null)
-                .GroupBy(r => r.Emp_No!)
-                .Select(g => new
+                // ── Step 3: Last attendance per employee ────────────────
+                var lastAttendance = await _db.HR_Swap_Record
+                    .AsNoTracking()
+                    .Where(r => r.Emp_No != null && r.Swap_Time != null)
+                    .GroupBy(r => r.Emp_No!)
+                    .Select(g => new { EmpNo = g.Key, LastSwap = g.Max(r => r.Swap_Time) })
+                    .ToDictionaryAsync(x => x.EmpNo, x => x.LastSwap);
+
+                // ── Step 4: Build rows ──────────────────────────────────
+                var rows = enrollments.Select(e =>
                 {
-                    EmpNo = g.Key,
-                    LastSwap = g.Max(r => r.Swap_Time)
-                })
-                .ToDictionaryAsync(x => x.EmpNo, x => x.LastSwap);
+                    bioByEmp.TryGetValue(e.EmpNo, out var bio);
+                    lastAttendance.TryGetValue(e.EmpNo, out var lastSwap);
 
-            // ── Step 4: Build list rows ─────────────────────────────────
-            var rows = enrollments.Select(e =>
-            {
-                bioByEmp.TryGetValue(e.EmpNo, out var bio);
-                lastAttendance.TryGetValue(e.EmpNo, out var lastSwap);
+                    int totalFingers  = bio?.TotalFingers  ?? 0;
+                    int uniqueFingers = bio?.UniqueFingers ?? 0;
+                    bool fraudAlert   = uniqueFingers > MaxAllowedUniqueFingers;
 
-                int totalFingers = bio?.TotalFingers ?? 0;
-                int uniqueFingers = bio?.UniqueFingers ?? 0;
-                bool fraudAlert = uniqueFingers > MaxAllowedUniqueFingers;
-                string? fraudReason = fraudAlert
-                    ? $"Suspicious: {uniqueFingers} distinct finger indexes detected (max 10 possible)"
-                    : null;
-
-                return new EmployeeReportListRow
-                {
-                    EmpNo = e.EmpNo,
-                    EmpName = e.EmpName ?? "",
-                    TotalFingersEnrolled = totalFingers,
-                    MachinesAssigned = bio?.MachineCount ?? 0,
-                    BiometricStatus = totalFingers > 0 ? "Active" : "Not Enrolled",
-                    EnrollmentDate = e.EnrollmentDate,
-                    LastAttendance = lastSwap,
-                    IsActive = e.IsActive,
-                    FraudAlert = fraudAlert,
-                    FraudReason = fraudReason
-                };
-            }).ToList();
-
-            // ── Step 5: Search filter ───────────────────────────────────
-            if (!string.IsNullOrEmpty(search))
-            {
-                rows = rows.Where(r =>
-                    r.EmpNo.ToLower().Contains(search) ||
-                    r.EmpName.ToLower().Contains(search) ||
-                    r.BiometricStatus.ToLower().Contains(search)).ToList();
-            }
-
-            int total = rows.Count;
-            var page = rows
-                .OrderBy(r => r.EmpNo)
-                .Skip(start).Take(length)
-                .Select(r => new
-                {
-                    empNo = r.EmpNo,
-                    empName = r.EmpName,
-                    totalFingersEnrolled = r.TotalFingersEnrolled,
-                    machinesAssigned = r.MachinesAssigned,
-                    biometricStatus = r.BiometricStatus,
-                    enrollmentDate = r.EnrollmentDate?.ToString("dd-MMM-yyyy"),
-                    lastAttendance = r.LastAttendance?.ToString("dd-MMM-yyyy HH:mm"),
-                    isActive = r.IsActive,
-                    fraudAlert = r.FraudAlert,
-                    fraudReason = r.FraudReason
+                    return new EmployeeReportListRow
+                    {
+                        EmpNo                = e.EmpNo,
+                        EmpName              = e.EmpName ?? "",
+                        TotalFingersEnrolled = totalFingers,
+                        MachinesAssigned     = bio?.MachineCount ?? 0,
+                        BiometricStatus      = totalFingers > 0 ? "Active" : "Not Enrolled",
+                        EnrollmentDate       = e.EnrollmentDate,
+                        LastAttendance       = lastSwap,
+                        IsActive             = e.IsActive,
+                        FraudAlert           = fraudAlert,
+                        FraudReason          = fraudAlert
+                            ? $"Suspicious: {uniqueFingers} distinct finger indexes detected (max 10 possible)"
+                            : null
+                    };
                 }).ToList();
 
-            return Json(new { draw, recordsTotal = total, recordsFiltered = total, data = page });
+                // ── Step 5: Search filter ───────────────────────────────
+                if (!string.IsNullOrEmpty(search))
+                {
+                    rows = rows.Where(r =>
+                        (r.EmpNo   ?? "").ToLower().Contains(search) ||
+                        (r.EmpName ?? "").ToLower().Contains(search) ||
+                        (r.BiometricStatus ?? "").ToLower().Contains(search)).ToList();
+                }
+
+                int total = rows.Count;
+                var page = rows
+                    .OrderBy(r => r.EmpNo)
+                    .Skip(start).Take(length)
+                    .Select(r => new
+                    {
+                        empNo                = r.EmpNo ?? "",
+                        empName              = r.EmpName ?? "",
+                        totalFingersEnrolled = r.TotalFingersEnrolled,
+                        machinesAssigned     = r.MachinesAssigned,
+                        biometricStatus      = r.BiometricStatus ?? "",
+                        enrollmentDate       = r.EnrollmentDate?.ToString("dd-MMM-yyyy") ?? "",
+                        lastAttendance       = r.LastAttendance?.ToString("dd-MMM-yyyy HH:mm") ?? "",
+                        isActive             = r.IsActive,
+                        fraudAlert           = r.FraudAlert,
+                        fraudReason          = r.FraudReason ?? ""
+                    }).ToList();
+
+                return Json(new { draw, recordsTotal = total, recordsFiltered = total, data = page });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetEmployees failed");
+                return Json(new { draw, recordsTotal = 0, recordsFiltered = 0, data = Array.Empty<object>(),
+                    error = "Failed to load employees: " + ex.Message });
+            }
         }
 
         // ================================================================
         //  GET  /HR/EmployeeDetailReport/Detail/{empNo}
         // ================================================================
         [HttpGet]
-        public async Task<IActionResult> Detail(string empNo)
+        public async Task<IActionResult> Detail(string id)
         {
-            if (string.IsNullOrWhiteSpace(empNo))
+            if (string.IsNullOrWhiteSpace(id))
                 return BadRequest("Employee ID is required.");
 
-            var vm = await BuildDetailViewModelAsync(empNo);
+            var vm = await BuildDetailViewModelAsync(id);
             if (vm == null)
-                return NotFound($"Employee '{empNo}' not found.");
+                return NotFound($"Employee '{id}' not found.");
 
             return View(vm);
         }
@@ -509,7 +511,7 @@ namespace ServiceHub.Areas.HR.Controllers
                 })
                 .ToListAsync();
 
-            var bioLogs = await _db.EmployeeBiometricLogs
+            var bioLogs = await _db.Employee_Biometric_Log
                 .AsNoTracking()
                 .Where(b => b.IsActive && b.EmpNo != null)
                 .ToListAsync();
@@ -623,7 +625,7 @@ namespace ServiceHub.Areas.HR.Controllers
             var first = enrollments.First();
 
             // ── Biometric logs (all machines) ───────────────────────────
-            var bioLogs = await _db.EmployeeBiometricLogs
+            var bioLogs = await _db.Employee_Biometric_Log
                 .AsNoTracking()
                 .Where(b => b.EmpNo == empNo && b.IsActive)
                 .OrderByDescending(b => b.EnrollmentDate)
@@ -678,7 +680,7 @@ namespace ServiceHub.Areas.HR.Controllers
                 machineDict.TryGetValue(enrl.MachineIP, out var mach);
                 var bio = bioLogs.FirstOrDefault(b => b.MachineIP == enrl.MachineIP);
                 var fingerNames = bio?.FingerIndexArray
-                    .Select(fi => EmployeeBiometricLog.FingerName(fi))
+                    .Select(fi => Employee_Biometric_Log.FingerName(fi))
                     .ToList() ?? new List<string>();
 
                 assignedMachines.Add(new MachineEnrollmentDetail

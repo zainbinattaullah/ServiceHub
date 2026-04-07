@@ -1,208 +1,1061 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ServiceHub</title>
+    <title>@ViewData["Title"] - Vision Plus</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    @* <link rel="stylesheet" href="~/ServiceHub.styles.css" asp-append-version="true" /> *@
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css">
-    <link href="~/css/all.min.css" rel="stylesheet" />
-    
+    <link rel="stylesheet" href="/cust_theme_comp/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --auth-primary:    #1e3a5f;
+            --auth-primary-l:  #2d5a96;
+            --auth-accent:     #4f8fea;
+            --auth-accent-l:   #6ba3f7;
+            --auth-success:    #10b981;
+            --auth-glass-bg:   rgba(255, 255, 255, 0.12);
+            --auth-glass-bdr:  rgba(255, 255, 255, 0.18);
+            --auth-card-bg:    rgba(255, 255, 255, 0.95);
+            --auth-shadow:     0 25px 60px rgba(0, 0, 0, 0.35);
+            --auth-shadow-sm:  0 8px 32px rgba(0, 0, 0, 0.12);
+            --auth-radius:     20px;
+            --auth-radius-sm:  12px;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            background: url('/images/login_background.jpg') no-repeat center center fixed;
-            background-size: cover;
-            height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0;
-            font-family: sans-serif;
+            background: #060b18;
+            overflow: hidden;
+            position: relative;
         }
 
-        .login-card {
-            /* Pure white background */
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
-            max-width: 550px;
+        /* ── Animated Scene Canvas ─────────────────────────────────── */
+        #zkScene {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        /* Main container */
+        .auth-container {
+            position: relative;
+            z-index: 1;
             width: 100%;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-            .login-card:hover {
-                transform: translateY(-10px);
-                box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.4);
-            }
-
-        .card-header {
-            /* Pure white background */
-            background: white; 
-            border-bottom: none;
-            padding: 0;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .nav-tabs {
-            border-bottom: none;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-
-            .nav-tabs .nav-item {
-                flex: 1;
-                text-align: center;
-            }
-
-            .nav-tabs .nav-link {
-                border: none;
-                color: #333;
-                font-weight: 500;
-                transition: color 0.3s ease, background-color 0.3s ease;
-                padding: 10px 0;
-                width: 100%;
-                border-radius: 0;
-            }
-
-                .nav-tabs .nav-link.active {
-                    color: #007bff;
-                    /* Light blue background for active tab */
-                    background: rgba(0, 123, 255, 0.1);
-                    /* Thicker border for active tab */
-                    border-bottom: 3px solid #007bff; 
-                    /* Bold text for active tab */
-                    font-weight: 600; 
-                }
-
-                .nav-tabs .nav-link:hover {
-                    color: #007bff;
-                    /* Light hover effect */
-                    background: rgba(0, 123, 255, 0.05);
-                }
-
-        .card-body {
-            /* Pure white background */
-            background: white; 
+            max-width: 520px;
             padding: 20px;
-            border-radius: 0 0 15px 15px;
+            animation: fadeSlideUp 0.6s ease-out;
         }
 
-        .btn-primary {
-            background-color: #007bff;
-            border: none;
-            border-radius: 25px;
-            padding: 10px 20px;
+        @@keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glass card */
+        .auth-card {
+            background: var(--auth-card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--auth-radius);
+            box-shadow: var(--auth-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            overflow: hidden;
+        }
+
+        /* Brand header */
+        .auth-brand {
+            background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-l) 100%);
+            padding: 28px 32px 22px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-brand::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .auth-brand-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-brand h1 {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .auth-brand p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Tab navigation */
+        .auth-tabs {
+            display: flex;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 16px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+
+        .auth-tab:hover {
+            color: var(--auth-primary);
+            background: rgba(30, 58, 95, 0.04);
+        }
+
+        .auth-tab.active {
+            color: var(--auth-primary);
+            background: #fff;
+            border-bottom-color: var(--auth-accent);
+        }
+
+        .auth-tab i {
+            font-size: 15px;
+        }
+
+        /* Form body */
+        .auth-body {
+            padding: 30px 32px 28px;
+        }
+
+        /* Custom floating labels */
+        .auth-field {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .auth-field .form-control {
+            height: 52px;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--auth-radius-sm);
+            padding: 16px 16px 6px 48px;
+            font-size: 14px;
             font-weight: 500;
-            transition: background-color 0.3s ease;
+            color: #1e293b;
+            background: #f8fafc;
+            transition: all 0.25s ease;
         }
 
-            .btn-primary:hover {
-                background-color: #0056b3;
-            }
-
-        .form-control {
-            border-radius: 25px;
-            padding: 10px 20px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        .auth-field .form-control:focus {
+            border-color: var(--auth-accent);
+            box-shadow: 0 0 0 4px rgba(79, 143, 234, 0.12);
+            background: #fff;
+            outline: none;
         }
 
-            .form-control:focus {
-                border-color: #007bff;
-                box-shadow: 0 0 10px rgba(0, 123, 255, 0.25);
-            }
+        .auth-field .form-control::placeholder { color: transparent; }
 
-        .form-floating {
-            margin-bottom: 1rem;
+        .auth-field .field-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 16px;
+            transition: color 0.25s;
+            z-index: 2;
+            pointer-events: none;
         }
 
+        .auth-field .form-control:focus ~ .field-icon {
+            color: var(--auth-accent);
+        }
+
+        .auth-field .form-floating > .form-control {
+            padding-left: 48px;
+        }
+
+        .auth-field .form-floating > label {
+            padding-left: 48px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Toggle password visibility */
+        .auth-toggle-pw {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            z-index: 2;
+            transition: color 0.2s;
+        }
+        .auth-toggle-pw:hover { color: var(--auth-primary); }
+
+        /* Remember me */
+        .auth-remember {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .auth-remember .form-check {
+            margin: 0;
+        }
+
+        .auth-remember .form-check-input {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #cbd5e1;
+            border-radius: 5px;
+            margin-top: 0;
+            cursor: pointer;
+        }
+
+        .auth-remember .form-check-input:checked {
+            background-color: var(--auth-accent);
+            border-color: var(--auth-accent);
+        }
+
+        .auth-remember .form-check-label {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+
+        .auth-remember a {
+            color: var(--auth-accent);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .auth-remember a:hover {
+            color: var(--auth-primary);
+        }
+
+        /* Submit button */
+        .auth-btn {
+            width: 100%;
+            height: 50px;
+            border: none;
+            border-radius: var(--auth-radius-sm);
+            background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-accent) 100%);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 143, 234, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 143, 234, 0.45);
+        }
+
+        .auth-btn:hover::before {
+            left: 100%;
+        }
+
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        .auth-footer {
+            text-align: center;
+            padding: 18px 32px 22px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .auth-footer p {
+            margin: 0;
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .auth-footer span {
+            color: var(--auth-accent);
+            font-weight: 700;
+        }
+
+        /* Validation */
         .text-danger {
-            font-size: 0.875rem;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+            display: block;
         }
 
-        .checkbox {
-            margin-bottom: 1rem;
+        /* Name row in register */
+        .auth-name-row {
+            display: flex;
+            gap: 12px;
         }
+        .auth-name-row .auth-field { flex: 1; }
 
-        /* Responsive adjustments */
-        @@media(max - width: 576px) {
-                .login-card {
-                    padding: 20px;
-                    max-width: 90%;
-                }
+        /* Responsive */
+        @@media (max-width: 576px) {
+            .auth-container { padding: 12px; }
+            .auth-body { padding: 24px 20px 20px; }
+            .auth-brand { padding: 22px 20px 18px; }
+            .auth-name-row { flex-direction: column; gap: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Canvas -->
+    <canvas id="zkScene"></canvas>
 
-                .form-control {
-                    padding: 8px 16px;
-                }
-
-                .btn-primary {
-                    padding: 8px 16px;
-                }
-            }
-
-            #login-submit {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0.5rem 1rem;
-                transition: background-color 0.3s ease;
-            }
-
-                #login-submit:hover {
-                    background-color: #0056b3; /* Darker blue on hover */
-                }
-
-            .fa-sign-in-alt {
-                color: white; /* Icon color */
-                margin-right: 0.5rem; /* Spacing between icon and text */
-            }
-
-        </style>
-    </head>
-    <body>
-        <div class="login-card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/Identity/Account/Login">Log In</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/Identity/Account/Register">Register</a>
-                    </li>
-                </ul>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Brand header -->
+            <div class="auth-brand">
+                <div class="auth-brand-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>Vision Plus Technologies (Pvt.) Ltd</h1>
+                <p>Attendance & Workforce Management System</p>
             </div>
-            <div class="card-body">
+
+            <!-- Tab navigation (single Sign In tab — registration is admin-only) -->
+            <div class="auth-tabs">
+               @*  <a href="/Identity/Account/Login" class="auth-tab active" id="tabLogin">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </a> *@
+            </div>
+
+            <!-- Content -->
+            <div class="auth-body">
                 @RenderBody()
             </div>
+
+            <!-- Footer -->
+            <div class="auth-footer">
+                <p><i class="fas fa-lock me-1"></i> Secured by <span>Vision Plus Technologies (Pvt.) Ltd</span></p>
+            </div>
         </div>
-        <script src="~/lib/jquery/dist/jquery.min.js"></script>
-        <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="~/js/site.js" asp-append-version="true"></script>
-        <script>
-            $(document).ready(function () {
-                // Get the current URL path
-                const currentPage = window.location.pathname; 
-                // Loop through each tab link
-                $('.nav-tabs .nav-link').each(function () {
-                    const $this = $(this);
-                    // Get the tab's href
-                    const tabHref = $this.attr('href').toLowerCase(); 
-                    // Check if the current page matches the tab's href
-                    if (currentPage.toLowerCase().includes(tabHref)) {
-                         // Add the 'active' class to the matching tab
-                        $this.addClass('active');
-                    } else {
-                        // Remove the 'active' class from other tabs
-                        $this.removeClass('active'); 
-                    }
-                });
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function () {
+            // Highlight active tab based on current path
+            var path = window.location.pathname.toLowerCase();
+            if (path.includes('/forgotpassword') || path.includes('/resetpassword'))
+                $('#tabLogin').removeClass('active');
+
+            $(document).on('click', '.auth-toggle-pw', function () {
+                var input = $(this).siblings('input');
+                var icon  = $(this).find('i');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
             });
-        </script>
-        @await RenderSectionAsync("Scripts", required: false)
-    </body>
-    </html>
+        });
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ZKTeco Attendance Machine — Animated Background Scene
+         ══════════════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+        var C = document.getElementById('zkScene'),
+            ctx = C.getContext('2d'),
+            W, H, t = 0, machines = [], particles = [], dataPackets = [],
+            employees = [], notifications = [], scanEvents = [];
+
+        function resize() { W = C.width = innerWidth; H = C.height = innerHeight; }
+        addEventListener('resize', resize); resize();
+
+        /* ── colour palette ─────────────────────────────────────── */
+        var COL = {
+            bg1: '#060b18', bg2: '#0c1629', bg3: '#111f3a',
+            blue: '#4f8fea', blueGlow: 'rgba(79,143,234,', green: '#10b981',
+            greenGlow: 'rgba(16,185,129,', purple: '#8b5cf6',
+            orange: '#f59e0b', red: '#ef4444', cyan: '#06b6d4',
+            white: '#e2e8f0', muted: '#475569', gridLine: 'rgba(79,143,234,0.04)'
+        };
+
+        /* ── util ───────────────────────────────────────────────── */
+        function lerp(a, b, t) { return a + (b - a) * t; }
+        function rand(a, b) { return Math.random() * (b - a) + a; }
+        function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+        /* ── draw helpers ───────────────────────────────────────── */
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        /* ── ZKTeco Machine Object ──────────────────────────────── */
+        function Machine(x, y, scale, name, online) {
+            this.x = x; this.y = y; this.s = scale || 1;
+            this.name = name; this.online = online;
+            this.scanPhase = rand(0, Math.PI * 2);
+            this.scanSpeed = rand(0.015, 0.03);
+            this.pulsePhase = rand(0, Math.PI * 2);
+            this.bobPhase = rand(0, Math.PI * 2);
+            this.lastScan = 0;
+            this.scanning = false;
+            this.scanTimer = 0;
+            this.fpProgress = 0;
+        }
+
+        Machine.prototype.draw = function () {
+            var s = this.s, x = this.x, y = this.y + Math.sin(t * 0.5 + this.bobPhase) * 4;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(s, s);
+
+            // — machine body shadow
+            ctx.shadowColor = COL.blueGlow + '0.15)';
+            ctx.shadowBlur = 30;
+
+            // — machine body
+            roundRect(-35, -55, 70, 110, 8);
+            var grad = ctx.createLinearGradient(0, -55, 0, 55);
+            grad.addColorStop(0, '#1a2744');
+            grad.addColorStop(1, '#0f1a2e');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // — screen
+            roundRect(-28, -48, 56, 38, 5);
+            var scGrad = ctx.createLinearGradient(0, -48, 0, -10);
+            scGrad.addColorStop(0, '#0a1628');
+            scGrad.addColorStop(1, '#0d1f3d');
+            ctx.fillStyle = scGrad;
+            ctx.fill();
+            ctx.strokeStyle = COL.blueGlow + '0.3)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            // — screen content: time display
+            ctx.fillStyle = COL.blue;
+            ctx.font = 'bold 11px Courier New';
+            ctx.textAlign = 'center';
+            var now = new Date();
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            ctx.fillText(hh + ':' + mm + ':' + ss, 0, -30);
+
+            // — screen: status text
+            ctx.font = '600 6px Inter, sans-serif';
+            if (this.scanning) {
+                ctx.fillStyle = COL.green;
+                ctx.fillText('VERIFYING...', 0, -19);
+            } else {
+                ctx.fillStyle = COL.blueGlow + '0.5)';
+                ctx.fillText('PLACE FINGER', 0, -19);
+            }
+
+            // — fingerprint sensor area
+            ctx.beginPath();
+            ctx.arc(0, 16, 18, 0, Math.PI * 2);
+            var sensorGrad = ctx.createRadialGradient(0, 16, 0, 0, 16, 18);
+            if (this.scanning) {
+                var glow = Math.sin(t * 4) * 0.3 + 0.7;
+                sensorGrad.addColorStop(0, COL.greenGlow + (0.3 * glow) + ')');
+                sensorGrad.addColorStop(0.6, COL.greenGlow + (0.1 * glow) + ')');
+                sensorGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            } else {
+                var pulse = Math.sin(t * 1.5 + this.pulsePhase) * 0.15 + 0.15;
+                sensorGrad.addColorStop(0, COL.blueGlow + pulse + ')');
+                sensorGrad.addColorStop(0.7, COL.blueGlow + (pulse * 0.3) + ')');
+                sensorGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            }
+            ctx.fillStyle = sensorGrad;
+            ctx.fill();
+
+            // — sensor ring
+            ctx.beginPath();
+            ctx.arc(0, 16, 18, 0, Math.PI * 2);
+            ctx.strokeStyle = this.scanning ? COL.greenGlow + '0.6)' : COL.blueGlow + '0.2)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // — fingerprint lines inside sensor
+            if (this.scanning && this.fpProgress > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 16, 16, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.strokeStyle = COL.greenGlow + (0.4 * this.fpProgress) + ')';
+                ctx.lineWidth = 0.6;
+                for (var i = 0; i < 7; i++) {
+                    ctx.beginPath();
+                    var ry = 16 - 10 + i * 3;
+                    ctx.ellipse(0, ry, 12 - Math.abs(i - 3) * 2, 2 + i * 0.5, 0, 0, Math.PI * 2 * this.fpProgress);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // — scan line sweeping across sensor
+            if (this.scanning) {
+                var scanY = 16 - 16 + (this.scanTimer % 60) / 60 * 32;
+                ctx.beginPath();
+                ctx.moveTo(-16, scanY);
+                ctx.lineTo(16, scanY);
+                ctx.strokeStyle = COL.greenGlow + '0.8)';
+                ctx.lineWidth = 1.5;
+                ctx.shadowColor = COL.green;
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // — online/offline LED
+            ctx.beginPath();
+            ctx.arc(22, -48, 3, 0, Math.PI * 2);
+            ctx.fillStyle = this.online ? COL.green : COL.red;
+            ctx.shadowColor = this.online ? COL.green : COL.red;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // — base stand
+            roundRect(-22, 52, 44, 5, 2);
+            ctx.fillStyle = '#141e33';
+            ctx.fill();
+
+            // — label
+            ctx.fillStyle = COL.blueGlow + '0.4)';
+            ctx.font = '600 5.5px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.name, 0, 48);
+
+            ctx.restore();
+        };
+
+        Machine.prototype.update = function () {
+            if (this.scanning) {
+                this.scanTimer++;
+                this.fpProgress = Math.min(1, this.fpProgress + 0.025);
+                if (this.scanTimer > 90) {
+                    this.scanning = false;
+                    this.scanTimer = 0;
+                    this.fpProgress = 0;
+                    // success notification
+                    spawnNotification(this.x, this.y - 70 * this.s, 'ACCESS GRANTED', COL.green);
+                    // data packet to server
+                    spawnDataPacket(this.x, this.y, W * 0.78, H * 0.18);
+                }
+            } else if (t - this.lastScan > rand(180, 400)) {
+                this.scanning = true;
+                this.lastScan = t;
+                this.scanTimer = 0;
+                this.fpProgress = 0;
+                spawnScanRipple(this.x, this.y + 16 * this.s);
+            }
+        };
+
+        /* ── Server Node ────────────────────────────────────────── */
+        function drawServer() {
+            var sx = W * 0.78, sy = H * 0.18, pulse = Math.sin(t * 2) * 0.15 + 0.85;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+
+            // glow
+            ctx.beginPath();
+            ctx.arc(0, 0, 50, 0, Math.PI * 2);
+            var glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 50);
+            glow.addColorStop(0, COL.blueGlow + (0.08 * pulse) + ')');
+            glow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.fill();
+
+            // server rack
+            for (var i = 0; i < 3; i++) {
+                roundRect(-25, -25 + i * 18, 50, 15, 3);
+                ctx.fillStyle = i === 0 ? '#1a2d4f' : '#142240';
+                ctx.fill();
+                ctx.strokeStyle = COL.blueGlow + '0.2)';
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+
+                // LEDs
+                for (var j = 0; j < 3; j++) {
+                    ctx.beginPath();
+                    ctx.arc(-15 + j * 7, -17 + i * 18, 1.5, 0, Math.PI * 2);
+                    var flicker = Math.sin(t * 3 + i + j) > 0;
+                    ctx.fillStyle = flicker ? COL.green : COL.blueGlow + '0.3)';
+                    ctx.fill();
+                }
+
+                // drive bars
+                var barW = 18 * pulse;
+                roundRect(5, -20 + i * 18, barW, 5, 1.5);
+                ctx.fillStyle = COL.blueGlow + '0.15)';
+                ctx.fill();
+            }
+
+            // label
+            ctx.fillStyle = COL.blueGlow + '0.5)';
+            ctx.font = '700 7px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('CLOUD SERVER', 0, 42);
+
+            ctx.restore();
+        }
+
+        /* ── Central Hub / App Logo ─────────────────────────────── */
+        function drawHub() {
+            var hx = W * 0.78, hy = H * 0.55;
+            ctx.save();
+            ctx.translate(hx, hy);
+
+            // rotating ring
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.strokeStyle = COL.blueGlow + '0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, t * 0.3, t * 0.3 + Math.PI * 0.5);
+            ctx.strokeStyle = COL.blueGlow + '0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // shield icon
+            ctx.beginPath();
+            ctx.moveTo(0, -18);
+            ctx.lineTo(14, -10);
+            ctx.lineTo(14, 5);
+            ctx.quadraticCurveTo(14, 18, 0, 22);
+            ctx.quadraticCurveTo(-14, 18, -14, 5);
+            ctx.lineTo(-14, -10);
+            ctx.closePath();
+            var shGrad = ctx.createLinearGradient(0, -18, 0, 22);
+            shGrad.addColorStop(0, COL.blueGlow + '0.2)');
+            shGrad.addColorStop(1, COL.blueGlow + '0.05)');
+            ctx.fillStyle = shGrad;
+            ctx.fill();
+            ctx.strokeStyle = COL.blueGlow + '0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // check mark inside shield
+            ctx.beginPath();
+            ctx.moveTo(-6, 2);
+            ctx.lineTo(-1, 8);
+            ctx.lineTo(8, -5);
+            ctx.strokeStyle = COL.green;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            // label
+            ctx.fillStyle = COL.blueGlow + '0.4)';
+            ctx.font = '700 6px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('SERVICE HUB', 0, 42);
+
+            ctx.restore();
+        }
+
+        /* ── Dashboard Stats Panel ──────────────────────────────── */
+        function drawDashboard() {
+            var dx = W * 0.82, dy = H * 0.78;
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.globalAlpha = 0.5 + Math.sin(t * 0.8) * 0.1;
+
+            roundRect(-65, -35, 130, 70, 8);
+            ctx.fillStyle = 'rgba(15,25,50,0.6)';
+            ctx.fill();
+            ctx.strokeStyle = COL.blueGlow + '0.15)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.font = '700 6px Inter, sans-serif';
+            ctx.fillStyle = COL.blueGlow + '0.5)';
+            ctx.textAlign = 'center';
+            ctx.fillText('LIVE DASHBOARD', 0, -22);
+
+            // mini bar chart
+            var bars = [0.6, 0.85, 0.45, 0.95, 0.7, 0.5, 0.8];
+            for (var i = 0; i < bars.length; i++) {
+                var bh = bars[i] * 28 * (0.8 + Math.sin(t * 0.5 + i) * 0.2);
+                var bx = -42 + i * 13;
+                roundRect(bx, 25 - bh, 8, bh, 1.5);
+                ctx.fillStyle = i % 2 === 0 ? COL.blueGlow + '0.25)' : COL.greenGlow + '0.2)';
+                ctx.fill();
+            }
+
+            // stats text
+            ctx.font = '600 5px Inter, sans-serif';
+            ctx.fillStyle = COL.greenGlow + '0.6)';
+            ctx.textAlign = 'left';
+            var empCount = 120 + Math.floor(Math.sin(t * 0.1) * 10);
+            ctx.fillText('Employees: ' + empCount, -55, -10);
+            ctx.fillStyle = COL.blueGlow + '0.6)';
+            ctx.fillText('Check-ins: ' + (empCount - 15 + Math.floor(Math.sin(t * 0.2) * 5)), -55, -2);
+
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        /* ── Data Packet ────────────────────────────────────────── */
+        function DataPacket(x1, y1, x2, y2) {
+            this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
+            this.progress = 0; this.speed = rand(0.008, 0.015);
+            this.alive = true; this.size = rand(2, 4);
+        }
+        DataPacket.prototype.update = function () {
+            this.progress += this.speed;
+            if (this.progress >= 1) this.alive = false;
+        };
+        DataPacket.prototype.draw = function () {
+            var p = this.progress;
+            // bezier curve path
+            var cx = (this.x1 + this.x2) / 2 + (this.y1 - this.y2) * 0.3;
+            var cy = (this.y1 + this.y2) / 2;
+            var tp = 1 - p;
+            var px = tp * tp * this.x1 + 2 * tp * p * cx + p * p * this.x2;
+            var py = tp * tp * this.y1 + 2 * tp * p * cy + p * p * this.y2;
+
+            ctx.beginPath();
+            ctx.arc(px, py, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = COL.cyan;
+            ctx.shadowColor = COL.cyan;
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // trail
+            for (var i = 1; i <= 5; i++) {
+                var tp2 = 1 - Math.max(0, p - i * 0.015);
+                var tx = tp2 * tp2 * this.x1 + 2 * tp2 * (1 - tp2) * cx + (1 - tp2) * (1 - tp2) * this.x2;
+                var ty = tp2 * tp2 * this.y1 + 2 * tp2 * (1 - tp2) * cy + (1 - tp2) * (1 - tp2) * this.y2;
+                ctx.beginPath();
+                ctx.arc(tx, ty, this.size * (1 - i * 0.15), 0, Math.PI * 2);
+                ctx.fillStyle = COL.blueGlow + (0.3 - i * 0.05) + ')';
+                ctx.fill();
+            }
+        };
+
+        function spawnDataPacket(x1, y1, x2, y2) {
+            dataPackets.push(new DataPacket(x1, y1, x2, y2));
+        }
+
+        /* ── Notification Pop ───────────────────────────────────── */
+        function Notification(x, y, text, color) {
+            this.x = x; this.y = y; this.text = text; this.color = color;
+            this.life = 80; this.maxLife = 80;
+        }
+        Notification.prototype.draw = function () {
+            var alpha = Math.min(1, this.life / 20) * Math.min(1, (this.maxLife - (this.maxLife - this.life)) / 20);
+            alpha = Math.max(0, Math.min(1, this.life / this.maxLife));
+            var yOff = (1 - this.life / this.maxLife) * -30;
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.font = '700 7px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 8;
+            ctx.fillText(this.text, this.x, this.y + yOff);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        };
+        function spawnNotification(x, y, text, color) { notifications.push(new Notification(x, y, text, color)); }
+
+        /* ── Scan Ripple ────────────────────────────────────────── */
+        function ScanRipple(x, y) { this.x = x; this.y = y; this.r = 0; this.life = 40; }
+        ScanRipple.prototype.draw = function () {
+            var alpha = this.life / 40;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.strokeStyle = COL.greenGlow + (alpha * 0.4) + ')';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            this.r += 1.2; this.life--;
+        };
+        function spawnScanRipple(x, y) { scanEvents.push(new ScanRipple(x, y)); }
+
+        /* ── Particle ───────────────────────────────────────────── */
+        function Particle() {
+            this.x = rand(0, W); this.y = rand(0, H);
+            this.vx = rand(-0.15, 0.15); this.vy = rand(-0.15, 0.15);
+            this.r = rand(0.5, 1.5);
+            this.alpha = rand(0.1, 0.3);
+        }
+        Particle.prototype.update = function () {
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < 0) this.x = W; if (this.x > W) this.x = 0;
+            if (this.y < 0) this.y = H; if (this.y > H) this.y = 0;
+        };
+
+        /* ── Connection Lines (machine → server) ────────────────── */
+        function drawConnections() {
+            var sx = W * 0.78, sy = H * 0.18;
+            machines.forEach(function (m) {
+                var dash = (t * 2) % 20;
+                ctx.beginPath();
+                var cx = (m.x + sx) / 2 + (m.y - sy) * 0.2;
+                var cy = (m.y + sy) / 2;
+                ctx.moveTo(m.x, m.y);
+                ctx.quadraticCurveTo(cx, cy, sx, sy);
+                ctx.strokeStyle = m.online ? COL.blueGlow + '0.06)' : 'rgba(239,68,68,0.04)';
+                ctx.lineWidth = 0.8;
+                ctx.setLineDash([4, 8]);
+                ctx.lineDashOffset = -dash;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            // server to hub
+            var hx = W * 0.78, hy = H * 0.55;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy + 35);
+            ctx.lineTo(hx, hy - 40);
+            ctx.strokeStyle = COL.blueGlow + '0.1)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 6]);
+            ctx.lineDashOffset = -(t * 2) % 18;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        /* ── Grid Background ────────────────────────────────────── */
+        function drawGrid() {
+            ctx.strokeStyle = COL.gridLine;
+            ctx.lineWidth = 0.5;
+            var gridSize = 60;
+            var offX = (t * 0.3) % gridSize;
+            var offY = (t * 0.3) % gridSize;
+            for (var x = -gridSize + offX; x < W + gridSize; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+            for (var y = -gridSize + offY; y < H + gridSize; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+            }
+        }
+
+        /* ── Floating Text Labels ───────────────────────────────── */
+        function drawLabels() {
+            var labels = [
+                { text: 'EMPLOYEE CHECK-IN', x: W * 0.08, y: H * 0.08 },
+                { text: 'BIOMETRIC SYNC', x: W * 0.15, y: H * 0.92 },
+                { text: 'REAL-TIME MONITORING', x: W * 0.88, y: H * 0.42 },
+                { text: 'DATA ENCRYPTION', x: W * 0.75, y: H * 0.92 }
+            ];
+            ctx.font = '700 8px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            labels.forEach(function (l, i) {
+                var alpha = 0.12 + Math.sin(t * 0.4 + i * 1.5) * 0.06;
+                ctx.fillStyle = COL.blueGlow + alpha + ')';
+                ctx.fillText(l.text, l.x, l.y);
+            });
+        }
+
+        /* ── Live Clock ─────────────────────────────────────────── */
+        function drawClock() {
+            var cx = W * 0.92, cy = H * 0.08;
+            var now = new Date();
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.textAlign = 'right';
+
+            ctx.font = '700 22px Courier New';
+            ctx.fillStyle = COL.blueGlow + '0.18)';
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            ctx.fillText(hh + ':' + mm + ':' + ss, 0, 0);
+
+            ctx.font = '600 7px Inter, sans-serif';
+            ctx.fillStyle = COL.blueGlow + '0.12)';
+            var days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+            ctx.fillText(days[now.getDay()], 0, 14);
+
+            ctx.restore();
+        }
+
+        /* ── Init ───────────────────────────────────────────────── */
+        function init() {
+            machines = [];
+            particles = [];
+
+            // create ZKTeco machines on left side
+            var machineData = [
+                { x: 0.08, y: 0.25, s: 0.9, name: 'ZK-F22', online: true },
+                { x: 0.18, y: 0.50, s: 1.0, name: 'ZK-MB360', online: true },
+                { x: 0.08, y: 0.75, s: 0.85, name: 'ZK-IN01A', online: true },
+                { x: 0.28, y: 0.30, s: 0.7, name: 'ZK-UF100', online: false },
+                { x: 0.30, y: 0.70, s: 0.75, name: 'ZK-K40', online: true },
+                { x: 0.20, y: 0.88, s: 0.65, name: 'ZK-G3 Pro', online: true }
+            ];
+
+            machineData.forEach(function (d) {
+                machines.push(new Machine(W * d.x, H * d.y, d.s, d.name, d.online));
+            });
+
+            for (var i = 0; i < 60; i++) particles.push(new Particle());
+        }
+
+        init();
+        addEventListener('resize', init);
+
+        /* ── Main Loop ──────────────────────────────────────────── */
+        function frame() {
+            t += 0.016666;
+            ctx.clearRect(0, 0, W, H);
+
+            // background gradient
+            var bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, W * 0.7);
+            bgGrad.addColorStop(0, COL.bg3);
+            bgGrad.addColorStop(0.5, COL.bg2);
+            bgGrad.addColorStop(1, COL.bg1);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            drawGrid();
+
+            // particles
+            particles.forEach(function (p) {
+                p.update();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = COL.blueGlow + p.alpha + ')';
+                ctx.fill();
+            });
+
+            // connect nearby particles
+            for (var i = 0; i < particles.length; i++) {
+                for (var j = i + 1; j < particles.length; j++) {
+                    var d = dist(particles[i], particles[j]);
+                    if (d < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = COL.blueGlow + (0.04 * (1 - d / 120)) + ')';
+                        ctx.lineWidth = 0.4;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            drawConnections();
+            drawLabels();
+            drawClock();
+
+            // machines
+            machines.forEach(function (m) { m.update(); m.draw(); });
+
+            // server + hub + dashboard
+            drawServer();
+            drawHub();
+            drawDashboard();
+
+            // data packets
+            dataPackets = dataPackets.filter(function (p) { return p.alive; });
+            dataPackets.forEach(function (p) { p.update(); p.draw(); });
+
+            // notifications
+            notifications = notifications.filter(function (n) { return n.life > 0; });
+            notifications.forEach(function (n) { n.life--; n.draw(); });
+
+            // scan ripples
+            scanEvents = scanEvents.filter(function (r) { return r.life > 0; });
+            scanEvents.forEach(function (r) { r.draw(); });
+
+            requestAnimationFrame(frame);
+        }
+
+        frame();
+    })();
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

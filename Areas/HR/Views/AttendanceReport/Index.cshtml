@@ -1,53 +1,42 @@
 ﻿@model ServiceHub.Areas.HR.Models.AttendanceReportPageViewModel
 @{
     ViewData["Title"] = "Employee Attendance Report";
+    ViewData["PageIcon"] = "fas fa-clipboard-list";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<link href="~/css/select2.css" rel="stylesheet" />
 <style>
-    :root {
-        --navy:       #1e3a5f;
-        --navy-light: #2d5a96;
-        --green:      #198754;
-        --red:        #dc3545;
-        --orange:     #fd7e14;
-        --card-bg:    #ffffff;
-        --border:     #dde3ec;
-        --text-main:  #1a2535;
-        --text-muted: #6b7a94;
-        --shadow:     0 2px 12px rgba(30,58,95,0.10);
-    }
-
     .rpt-tabs {
         display: flex;
         gap: 6px;
         margin-bottom: 20px;
-        background: #fff;
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
         padding: 10px 14px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         flex-wrap: wrap;
     }
 
     .rpt-tab {
         padding: 7px 20px;
         border-radius: 6px;
-        border: 1.5px solid var(--border);
-        background: #f7f9fc;
-        color: var(--text-muted);
+        border: 1.5px solid var(--sh-border);
+        background: var(--sh-surface-alt, #f7f9fc);
+        color: var(--sh-text-muted);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all .15s;
     }
 
-    .rpt-tab:hover      { border-color: var(--navy-light); color: var(--navy); }
-    .rpt-tab.active     { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .rpt-tab:hover      { border-color: var(--sh-primary); color: var(--sh-primary); }
+    .rpt-tab.active     { background: var(--sh-primary, #1e3a5f); color: #fff; border-color: var(--sh-primary); }
 
     .filter-card {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         padding: 16px 20px;
         margin-bottom: 20px;
     }
@@ -71,37 +60,37 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--text-muted);
+        color: var(--sh-text-muted);
     }
 
     .fg select,
     .fg input[type="date"],
     .fg input[type="text"],
     .fg input[type="number"] {
-        border: 1.5px solid var(--border);
+        border: 1.5px solid var(--sh-border);
         border-radius: 6px;
         padding: 6px 10px;
         font-size: 13px;
-        color: var(--text-main);
-        background: #f7f9fc;
+        color: var(--sh-text);
+        background: var(--sh-surface, #f7f9fc);
         outline: none;
         transition: border-color .15s;
         height: 34px;
     }
 
     .fg select:focus,
-    .fg input:focus { border-color: var(--navy-light); background: #fff; }
+    .fg input:focus { border-color: var(--sh-primary); background: var(--sh-surface); }
 
     .table-card {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         overflow: hidden;
         margin-bottom: 30px;
     }
 
     .table-card-header {
-        background: var(--navy);
+        background: var(--sh-primary, #1e3a5f);
         color: #fff;
         padding: 13px 20px;
         display: flex;
@@ -144,13 +133,13 @@
         font-size: 11px; font-weight: 700; }
 
     #attTable thead th, #attTableMonthly thead th, #attTableAbsentee thead th {
-        background: #f0f4fa;
-        color: var(--navy);
+        background: var(--sh-surface-alt, #f0f4fa);
+        color: var(--sh-primary);
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .04em;
-        border-bottom: 2px solid var(--border);
+        border-bottom: 2px solid var(--sh-border);
         white-space: nowrap;
     }
 
@@ -375,6 +364,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/select2.js"></script>
 <script>
 $(function () {
 
@@ -382,6 +372,12 @@ $(function () {
         console.error('DataTables not loaded.');
         return;
     }
+
+    // Initialize Select2 on filter dropdowns
+    $('#fMonth, #fDept, #fLocation').select2({
+        width: '100%',
+        minimumResultsForSearch: 5
+    });
 
     // ----------------------------------------------------------------
     //  State
@@ -625,9 +621,9 @@ $(function () {
         $('#dateToDisplay').val('');
         $('#fEmployee').val('');
         $('#fEmpName').val('');
-        $('#fDept').val('');
-        $('#fLocation').val('');
-        $('#fMonth').val(now.getMonth() + 1);
+        $('#fDept').val('').trigger('change');
+        $('#fLocation').val('').trigger('change');
+        $('#fMonth').val(now.getMonth() + 1).trigger('change');
         $('#fYear').val(now.getFullYear());
         reloadActive();
     });

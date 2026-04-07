@@ -1,0 +1,112 @@
+<!--
+    Settings Panel — off-canvas slide-in (Bootstrap Offcanvas).
+    Opened by the ⚙ gear button in _TopNavbar.cshtml.
+    All changes apply instantly via JavaScript and persist to DB + localStorage.
+-->
+<div class="offcanvas offcanvas-end sh-settings-panel"
+     tabindex="-1"
+     id="settingsPanel"
+     aria-labelledby="settingsPanelLabel">
+
+    <!-- Header -->
+    <div class="offcanvas-header sh-settings-panel__header">
+        <h5 class="offcanvas-title" id="settingsPanelLabel">
+            <i class="fas fa-cog me-2"></i> Appearance Settings
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    <!-- Body -->
+    <div class="offcanvas-body">
+
+        <!-- ── Theme Selection ──────────────────────────────────────── -->
+        <div class="sh-settings-panel__section">
+            <h6 class="sh-settings-panel__section-title">
+                <i class="fas fa-palette me-2"></i>Colour Theme
+            </h6>
+            <div class="sh-theme-grid">
+
+                <button class="sh-theme-swatch sh-theme-swatch--light"
+                        data-theme-value="light"
+                        title="Light">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Light</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+                <button class="sh-theme-swatch sh-theme-swatch--dark"
+                        data-theme-value="dark"
+                        title="Dark">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Dark</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+                <button class="sh-theme-swatch sh-theme-swatch--theme-blue"
+                        data-theme-value="theme-blue"
+                        title="Blue">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Blue</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+                <button class="sh-theme-swatch sh-theme-swatch--theme-green"
+                        data-theme-value="theme-green"
+                        title="Green">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Green</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+                <button class="sh-theme-swatch sh-theme-swatch--theme-purple"
+                        data-theme-value="theme-purple"
+                        title="Purple">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Purple</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+                <button class="sh-theme-swatch sh-theme-swatch--theme-orange"
+                        data-theme-value="theme-orange"
+                        title="Orange">
+                    <span class="sh-theme-swatch__preview"></span>
+                    <span class="sh-theme-swatch__label">Orange</span>
+                    <i class="fas fa-check-circle sh-theme-swatch__check"></i>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- ── Layout Options ───────────────────────────────────────── -->
+        <div class="sh-settings-panel__section">
+            <h6 class="sh-settings-panel__section-title">
+                <i class="fas fa-columns me-2"></i>Layout
+            </h6>
+
+            <div class="sh-settings-panel__toggle-row">
+                <div>
+                    <div class="fw-semibold small">Collapse Sidebar</div>
+                    <div class="text-muted" style="font-size:.78rem">
+                        Start with the sidebar minimised
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="sidebarToggleCheck" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Info ─────────────────────────────────────────────────── -->
+        <div class="sh-settings-panel__section sh-settings-panel__section--muted">
+            <small>
+                <i class="fas fa-info-circle me-1"></i>
+                Preferences are saved per account and applied on every login.
+            </small>
+        </div>
+
+    </div><!-- /offcanvas-body -->
+</div>

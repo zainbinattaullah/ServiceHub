@@ -1,5 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Machine Health Status";
+    ViewData["PageIcon"] = "fas fa-heartbeat";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -27,9 +28,9 @@
     }
 
     .health-card {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         padding: 22px 28px;
         display: flex;
         align-items: center;
@@ -75,14 +76,14 @@
         font-size: 34px;
         font-weight: 800;
         line-height: 1;
-        color: var(--text-main);
+        color: var(--sh-text, #1a2535);
         font-family: 'Courier New', monospace;
     }
 
     .filter-bar {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         padding: 16px 20px;
         margin-bottom: 20px;
         display: flex;
@@ -103,37 +104,37 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: var(--text-muted);
+        color: var(--sh-text-muted, #6b7a94);
     }
 
     .filter-group select,
     .filter-group input[type="text"] {
-        border: 1.5px solid var(--border);
+        border: 1.5px solid var(--sh-border);
         border-radius: 6px;
         padding: 6px 10px;
         font-size: 13px;
-        color: var(--text-main);
-        background: #f7f9fc;
+        color: var(--sh-text);
+        background: var(--sh-surface, #f7f9fc);
         outline: none;
         transition: border-color .15s;
     }
 
     .filter-group select:focus,
     .filter-group input[type="text"]:focus {
-        border-color: var(--navy-light);
-        background: #fff;
+        border-color: var(--sh-primary);
+        background: var(--sh-surface);
     }
 
     .table-card {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         overflow: hidden;
         margin-bottom: 30px;
     }
 
     .table-card-header {
-        background: var(--navy);
+        background: var(--sh-primary, #1e3a5f);
         color: #fff;
         padding: 14px 22px;
         display: flex;

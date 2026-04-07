@@ -3,15 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ServiceHub.Areas.HR.Models
 {
-    [Table("Employee_Biometric_Log")]
-    public class EmployeeBiometricLog
+    public class Employee_Biometric_Log
     {
         [Key]
         public int Id { get; set; }
 
+        [Column("Emp_No")]
         [StringLength(50)]
         public string? EmpNo { get; set; }
 
+        [Column("Emp_Name")]
         [StringLength(250)]
         public string? EmpName { get; set; }
 
@@ -45,7 +46,6 @@ namespace ServiceHub.Areas.HR.Models
                     .ToArray();
 
         /// <summary>Human-readable finger name (Right Thumb = index 0, etc.).</summary>
-        [NotMapped]
         public static string FingerName(int index) => index switch
         {
             0 => "Right Thumb",

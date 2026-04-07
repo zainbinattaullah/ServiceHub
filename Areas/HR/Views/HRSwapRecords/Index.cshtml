@@ -1,91 +1,32 @@
-﻿@model IEnumerable<HRSwapRecord>
+@model IEnumerable<HRSwapRecord>
 
 @{
     ViewData["Title"] = "Attendance Swap Records";
+    ViewData["PageIcon"] = "fas fa-exchange-alt";
 }
-<style>
-    .Cust-card-margin {
-        margin: 5px !important;
-    }
-
-    .table {
-        margin-bottom: 0 !important;
-    }
-
-    .dt-buttons .btn {
-        margin-right: 5px !important;
-    }
-
-        .dt-buttons .btn i {
-            margin-right: 5px !important;
-        }
-
-    .btn-dt-primry {
-        background-color: #0d6efd !important;
-        border-radius: 5px !important;
-        color: white !important;
-    }
-
-    .btn-dt-success {
-        background-color: #198754 !important;
-        border-radius: 5px !important;
-        color: white !important;
-    }
-
-    .btn-dt-info {
-        background-color: #0dcaf0 !important;
-        border-radius: 5px !important;
-        color: white !important;
-    }
-
-    .btn-dt-danger {
-        background-color: #dc3545 !important;
-        border-radius: 5px !important;
-        color: white !important;
-    }
-
-    .btn-dt-warning {
-        background-color: #ffc107 !important;
-        border-radius: 5px !important;
-        color: white !important;
-    }
-</style>
 
 <div class="row">
     <div class="col-lg-12">
-        <div class="card Cust-card-margin">
-            <div class="card-header">
-                <h2>Attendance Swap Records</h2>
-            </div>
+        <div class="card">
             <div class="card-body">
-                <div class="row mt-3">
-                    <div class="col-md-1">
-                        <label for="ipFilter">IP Address:</label>
-                    </div>
-                    <div class="col-md-3">
-                        <select id="ipFilter" class="form-control">
+                <div class="row g-3 mb-3 align-items-end">
+                    <div class="col-lg-3 col-md-3 col-sm-6">
+                        <label for="ipFilter" class="form-label">IP Address</label>
+                        <select id="ipFilter" class="form-select">
                             <option value="">All</option>
                         </select>
                     </div>
-
-                    <div class="col-md-1">
-                        <label>Start Date:</label>
-                    </div>
-                    <div class="col-md-2">
+                    <div class="col-lg-3 col-md-2 col-sm-6">
+                        <label for="startDate" class="form-label">Start Date</label>
                         <input type="date" id="startDate" class="form-control" />
                     </div>
-
-                    <div class="col-md-1">
-                        <label>End Date:</label>
-                    </div>
-                    <div class="col-md-2">
+                    <div class="col-lg-3 col-md-2 col-sm-6">
+                        <label for="endDate" class="form-label">End Date</label>
                         <input type="date" id="endDate" class="form-control" />
                     </div>
                 </div>
 
-                <div class="row mt-3"></div>
-
-                <table id="connectionLogsTable" class="table table-striped table-bordered" style="width:100%;">
+                <table id="connectionLogsTable" class="table table-striped table-bordered table-hover" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -122,10 +63,7 @@
                 success: function (data) {
                     var ipFilter = $('#ipFilter');
                     data.forEach(function (ip) {
-                        ipFilter.append($('<option>', {
-                            value: ip,
-                            text: ip
-                        }));
+                        ipFilter.append($('<option>', { value: ip, text: ip }));
                     });
                 }
             });
@@ -168,11 +106,7 @@
                     '<"row"<"col-sm-12"tr>>' +
                     '<"row"<"col-sm-5"i><"col-sm-7"p>>',
                 buttons: [
-                    {
-                        extend: 'copy',
-                        text: '<i class="fas fa-copy"></i> Copy',
-                        className: 'btn btn-dt-primry btn-sm'
-                    },
+                    { extend: 'copy',  text: '<i class="fas fa-copy"></i> Copy',  className: 'btn btn-dt-primary btn-sm' },
                     {
                         text: '<i class="fas fa-file-excel"></i> Export All (Excel)',
                         className: 'btn btn-dt-success btn-sm',
@@ -180,29 +114,20 @@
                             var ipAddress = $('#ipFilter').val();
                             var startDate = $('#startDate').val();
                             var endDate = $('#endDate').val();
-                        
                             window.location.href = '/HR/HRSwapRecords/ExportAttendanceRecords' +
                                 '?ipAddress=' + encodeURIComponent(ipAddress || '') +
                                 '&startDate=' + encodeURIComponent(startDate || '') +
                                 '&endDate=' + encodeURIComponent(endDate || '');
                         }
                     },
-                    {
-                        extend: 'pdf',
-                        text: '<i class="fas fa-file-pdf"></i> PDF',
-                        className: 'btn btn-dt-danger btn-sm'
-                    },
-                    {
-                        extend: 'print',
-                        text: '<i class="fas fa-print"></i> Print',
-                        className: 'btn btn-dt-warning btn-sm'
-                    }
+                    { extend: 'pdf',   text: '<i class="fas fa-file-pdf"></i> PDF',   className: 'btn btn-dt-danger btn-sm' },
+                    { extend: 'print', text: '<i class="fas fa-print"></i> Print', className: 'btn btn-dt-warning btn-sm' }
                 ]
             });
 
-          $('#ipFilter, #startDate, #endDate').on('change', function () {
-            table.ajax.reload();
-             });
+            $('#ipFilter, #startDate, #endDate').on('change', function () {
+                table.ajax.reload();
+            });
         });
     </script>
 }

@@ -1,9 +1,11 @@
 ﻿@model ServiceHub.Areas.HR.Models.ForceSyncPageViewModel
 @{
     ViewData["Title"] = "Machine Force Sync Dashboard";
+    ViewData["PageIcon"] = "fas fa-sync-alt";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<link href="~/css/select2.css" rel="stylesheet" />
 <style>
     :root {
         --navy:      #1e3a5f;
@@ -16,14 +18,11 @@
         --progress:  #fd7e14;
         --progress-bg:#fff3cd;
         --online:    #20c763;
-        --card-bg:   #ffffff;
-        --border:    #dde3ec;
-        --shadow:    0 2px 12px rgba(30,58,95,0.10);
     }
 
     /* Monitor panel */
     .monitor-panel {
-        background: var(--navy);
+        background: var(--sh-primary, var(--navy));
         border-radius: 12px;
         padding: 18px 24px;
         margin-bottom: 20px;
@@ -45,8 +44,8 @@
 
     /* Filter bar */
     .filter-bar {
-        background: var(--card-bg); border-radius: 10px;
-        box-shadow: var(--shadow); padding: 14px 18px;
+        background: var(--sh-surface, #fff); border-radius: 10px;
+        box-shadow: var(--sh-shadow); padding: 14px 18px;
         margin-bottom: 18px; display: flex; gap: 10px;
         flex-wrap: wrap; align-items: flex-end;
     }
@@ -55,16 +54,16 @@
 
     .fg label {
         font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .05em; color: #6b7a94;
+        letter-spacing: .05em; color: var(--sh-text-muted, #6b7a94);
     }
 
     .fg select, .fg input[type="text"] {
-        border: 1.5px solid var(--border); border-radius: 6px;
-        padding: 5px 9px; font-size: 13px; background: #f7f9fc;
-        outline: none; height: 32px; transition: border-color .15s;
+        border: 1.5px solid var(--sh-border); border-radius: 6px;
+        padding: 5px 9px; font-size: 13px; background: var(--sh-surface, #f7f9fc);
+        color: var(--sh-text); outline: none; height: 32px; transition: border-color .15s;
     }
 
-    .fg select:focus, .fg input:focus { border-color: var(--navy); background: #fff; }
+    .fg select:focus, .fg input:focus { border-color: var(--sh-primary); background: var(--sh-surface); }
 
     /* Bulk bar */
     .bulk-bar {
@@ -78,11 +77,11 @@
 
     /* Table card */
     .table-card {
-        background: var(--card-bg); border-radius: 10px;
-        box-shadow: var(--shadow); overflow: hidden;
+        background: var(--sh-surface, #fff); border-radius: 10px;
+        box-shadow: var(--sh-shadow); overflow: hidden;
     }
     .table-card-header {
-        background: var(--navy); color: #fff; padding: 13px 20px;
+        background: var(--sh-primary, #1e3a5f); color: #fff; padding: 13px 20px;
         display: flex; align-items: center;
         justify-content: space-between; flex-wrap: wrap; gap: 8px;
     }
@@ -140,12 +139,12 @@
     .btn-refresh.spinning i { animation: spin-it .7s linear infinite; }
 
     #syncTable thead th {
-        background: #f0f4fa; color: var(--navy);
+        background: var(--sh-surface-alt, #f0f4fa); color: var(--sh-primary);
         font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .04em; border-bottom: 2px solid var(--border);
+        letter-spacing: .04em; border-bottom: 2px solid var(--sh-border);
         white-space: nowrap;
     }
-    #syncTable tbody tr:hover { background: #f7f9fd; }
+    #syncTable tbody tr:hover { background: var(--sh-surface-alt, #f7f9fd); }
 
     /* Row highlight when syncing */
     .row-syncing td { background: #fffbe6 !important; }
@@ -372,10 +371,17 @@
 </div>
 
 @section Scripts {
+<script src="~/js/select2.js"></script>
 <script>
 $(function () {
 
     if (typeof $.fn.DataTable === 'undefined') { console.error('DataTables not loaded.'); return; }
+
+    // Initialize Select2 on filter dropdowns
+    $('#fRegion, #fArea, #fLoc, #fConn, #fStatus').select2({
+        width: '100%',
+        minimumResultsForSearch: 5
+    });
 
     // ----------------------------------------------------------------
     //  State
@@ -731,7 +737,7 @@ $(function () {
     // ----------------------------------------------------------------
     $('#btnApply').on('click', function () { table.ajax.reload(); });
     $('#btnClear').on('click', function () {
-        $('#fRegion,#fArea,#fLoc,#fConn,#fStatus').val('');
+        $('#fRegion,#fArea,#fLoc,#fConn,#fStatus').val('').trigger('change');
         $('#fMachine').val('');
         table.ajax.reload();
     });

@@ -1,71 +1,74 @@
 @{
     ViewData["Title"] = "Employee Detail Report";
+    ViewData["PageIcon"] = "fas fa-chart-bar";
 }
-
-<style>
-    .Cust-card-margin { margin: 5px !important; }
-    .table { margin-bottom: 0 !important; }
-    .dt-buttons .btn { margin-right: 5px !important; }
-    .dt-buttons .btn i { margin-right: 5px !important; }
-    .btn-dt-primary  { background-color:#0d6efd!important; border-color:#0d6efd!important; border-radius:5px!important; color:#fff!important; }
-    .btn-dt-success  { background-color:#198754!important; border-color:#198754!important; border-radius:5px!important; color:#fff!important; }
-    .btn-dt-danger   { background-color:#dc3545!important; border-color:#dc3545!important; border-radius:5px!important; color:#fff!important; }
-    .btn-dt-warning  { background-color:#ffc107!important; border-color:#ffc107!important; border-radius:5px!important; color:#000!important; }
-    .fraud-row td { background-color: #fff3cd !important; }
-    .fraud-badge { font-size:0.7rem; }
-    .finger-bar { display:inline-block; width:14px; height:22px; border-radius:3px; margin:1px; vertical-align:bottom; }
-</style>
 
 <div class="row">
     <div class="col-lg-12">
-        <div class="card Cust-card-margin">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">
-                    <i class="fas fa-fingerprint text-primary me-2"></i>Employee Detail Report
-                </h2>
-                <div>
-                    <a href="/HR/EmployeeDetailReport/ExportListExcel" class="btn btn-success btn-sm">
+        <div class="card">
+            <div class="card-header d-flex align-items-center flex-wrap gap-2">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="/HR/EmployeeDetailReport/ExportListExcel" class="btn btn-sm btn-gradient-success">
                         <i class="fas fa-file-excel me-1"></i> Export All (Excel)
                     </a>
+                    <button id="btnExportFiltered" class="btn btn-sm btn-gradient" title="Export current filtered view">
+                        <i class="fas fa-download me-1"></i> Export Filtered (Excel)
+                    </button>
                 </div>
             </div>
             <div class="card-body">
 
-                <!-- Summary Stats -->
-                <div class="row mb-3" id="summaryStats" style="display:none!important">
-                    <div class="col-md-3">
-                        <div class="info-box shadow-sm">
-                            <span class="info-box-icon bg-primary"><i class="fas fa-users"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Total Employees</span>
-                                <span class="info-box-number" id="statTotal">—</span>
+                <!-- Summary tiles -->
+                <div class="row g-3 mb-4" id="summaryStats" style="display:none">
+                    <div class="col-6 col-md-3">
+                        <div class="sh-stat-card card border-0">
+                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                <div class="sh-stat-icon" style="background:var(--sh-grad-primary)">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <div class="sh-stat-value" id="statTotal">—</div>
+                                    <div class="sh-stat-label">Total Employees</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-box shadow-sm">
-                            <span class="info-box-icon bg-success"><i class="fas fa-fingerprint"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Biometric Enrolled</span>
-                                <span class="info-box-number" id="statEnrolled">—</span>
+                    <div class="col-6 col-md-3">
+                        <div class="sh-stat-card card border-0">
+                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                <div class="sh-stat-icon" style="background:var(--sh-grad-success)">
+                                    <i class="fas fa-fingerprint"></i>
+                                </div>
+                                <div>
+                                    <div class="sh-stat-value" id="statEnrolled">—</div>
+                                    <div class="sh-stat-label">Biometric Enrolled</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-box shadow-sm">
-                            <span class="info-box-icon bg-warning"><i class="fas fa-exclamation-triangle"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Not Enrolled</span>
-                                <span class="info-box-number" id="statNotEnrolled">—</span>
+                    <div class="col-6 col-md-3">
+                        <div class="sh-stat-card card border-0">
+                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                <div class="sh-stat-icon" style="background:var(--sh-grad-warning)">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <div class="sh-stat-value" id="statNotEnrolled">—</div>
+                                    <div class="sh-stat-label">Not Enrolled</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-box shadow-sm">
-                            <span class="info-box-icon bg-danger"><i class="fas fa-shield-alt"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Fraud Alerts</span>
-                                <span class="info-box-number" id="statFraud">—</span>
+                    <div class="col-6 col-md-3">
+                        <div class="sh-stat-card card border-0">
+                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                <div class="sh-stat-icon" style="background:var(--sh-grad-danger)">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <div class="sh-stat-value" id="statFraud">—</div>
+                                    <div class="sh-stat-label">Fraud Alerts</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -80,7 +83,7 @@
                             <th>Employee ID</th>
                             <th>Name</th>
                             <th>Biometric Status</th>
-                            <th>Fingers Enrolled</th>
+                            <th>Fingers</th>
                             <th>Machines</th>
                             <th>Last Attendance</th>
                             <th>Enrollment Date</th>
@@ -107,21 +110,26 @@ $(document).ready(function () {
             url: '/HR/EmployeeDetailReport/GetEmployees',
             type: 'POST',
             dataSrc: function(json) {
-                // Compute summary stats from the FULL result (first load)
-                totalCount     = json.recordsFiltered;
-                enrolledCount  = json.data.filter(r => r.biometricStatus === 'Active').length;
-                notEnrolledCount = json.data.filter(r => r.biometricStatus === 'Not Enrolled').length;
-                fraudCount     = json.data.filter(r => r.fraudAlert).length;
+                totalCount       = json.recordsFiltered;
+                enrolledCount    = json.data.filter(function(r){ return r.biometricStatus === 'Active'; }).length;
+                notEnrolledCount = json.data.filter(function(r){ return r.biometricStatus === 'Not Enrolled'; }).length;
+                fraudCount       = json.data.filter(function(r){ return r.fraudAlert; }).length;
                 $('#statTotal').text(totalCount);
                 $('#statEnrolled').text(enrolledCount);
                 $('#statNotEnrolled').text(notEnrolledCount);
                 $('#statFraud').text(fraudCount);
-                $('#summaryStats').show();
+                $('#summaryStats').css('display','');
                 return json.data;
+            },
+            error: function(xhr) {
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    if (resp.error) alert(resp.error);
+                } catch(e) { console.error('DataTable AJAX error', xhr.status); }
             }
         },
         columns: [
-            { data: null, render: function(d, t, r, m) { return m.row + 1 + m.settings._iDisplayStart; }, orderable: false, width:'40px' },
+            { data: null, render: function(d,t,r,m){ return m.row+1+m.settings._iDisplayStart; }, orderable:false, width:'40px' },
             { data: 'empNo' },
             { data: 'empName' },
             {
@@ -134,23 +142,20 @@ $(document).ready(function () {
             },
             {
                 data: 'totalFingersEnrolled',
-                render: function(d, t, r) {
-                    if (d === 0) return '<span class="text-muted">—</span>';
+                render: function(d) {
+                    if (!d) return '<span class="text-muted">—</span>';
                     var cls = d > 10 ? 'bg-danger' : 'bg-primary';
-                    return '<span class="badge ' + cls + '">' + d + '</span>';
+                    return '<span class="badge '+cls+'">'+d+'</span>';
                 }
             },
             {
                 data: 'machinesAssigned',
                 render: function(d) {
-                    return d > 0 ? '<span class="badge bg-info text-dark">' + d + '</span>' : '<span class="text-muted">—</span>';
+                    return d > 0 ? '<span class="badge bg-info text-dark">'+d+'</span>' : '<span class="text-muted">—</span>';
                 }
             },
-            {
-                data: 'lastAttendance',
-                render: function(d) { return d || '<span class="text-muted">Never</span>'; }
-            },
-            { data: 'enrollmentDate', render: function(d) { return d || '—'; } },
+            { data: 'lastAttendance', render: function(d){ return d || '<span class="text-muted">Never</span>'; } },
+            { data: 'enrollmentDate', render: function(d){ return d || '—'; } },
             {
                 data: 'isActive',
                 render: function(d) {
@@ -159,14 +164,13 @@ $(document).ready(function () {
                 }
             },
             {
-                data: 'empNo',
-                orderable: false,
+                data: 'empNo', orderable: false,
                 render: function(d, t, r) {
                     var alert = r.fraudAlert
-                        ? '<span class="badge bg-danger fraud-badge ms-1" title="' + (r.fraudReason||'') + '"><i class="fas fa-exclamation-triangle"></i> Alert</span>'
+                        ? ' <span class="badge bg-danger" title="'+(r.fraudReason||'')+'"><i class="fas fa-exclamation-triangle"></i></span>'
                         : '';
-                    return '<a href="/HR/EmployeeDetailReport/Detail/' + encodeURIComponent(d) + '" '
-                         + 'class="btn btn-sm btn-primary"><i class="fas fa-eye me-1"></i>View</a>' + alert;
+                    return '<a href="/HR/EmployeeDetailReport/Detail/'+encodeURIComponent(d)+'" '
+                         + 'class="btn btn-sm btn-gradient"><i class="fas fa-eye me-1"></i>View</a>' + alert;
                 }
             }
         ],
@@ -177,20 +181,22 @@ $(document).ready(function () {
              '<"row"<"col-sm-12"tr>>' +
              '<"row"<"col-sm-5"i><"col-sm-7"p>>',
         pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-        order: [[1, 'asc']],
+        lengthMenu: [[10,25,50,100],[10,25,50,100]],
+        order: [[1,'asc']],
         buttons: [
-            { extend: 'copy',  text: '<i class="fas fa-copy"></i> Copy',  className: 'btn btn-dt-primary btn-sm' },
-            { extend: 'print', text: '<i class="fas fa-print"></i> Print', className: 'btn btn-dt-warning btn-sm' },
-            {
-                text: '<i class="fas fa-file-excel"></i> Export (Excel)',
-                className: 'btn btn-dt-success btn-sm',
-                action: function(e, dt) {
-                    var sv = $('#empTable_filter input').val();
-                    window.location.href = '/HR/EmployeeDetailReport/ExportListExcel?search=' + encodeURIComponent(sv||'');
-                }
-            }
+            { extend:'copy',  text:'<i class="fas fa-copy"></i> Copy',  className:'btn btn-dt-primary btn-sm' },
+            { extend:'print', text:'<i class="fas fa-print"></i> Print', className:'btn btn-dt-warning btn-sm' },
+            { extend:'pdf',   text:'<i class="fas fa-file-pdf"></i> PDF', className:'btn btn-dt-danger btn-sm',
+              exportOptions: { columns: [0,1,2,3,4,5,6,7,8] } },
+            { extend:'excel', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-dt-success btn-sm',
+              exportOptions: { columns: [0,1,2,3,4,5,6,7,8] } }
         ]
+    });
+
+    // Export filtered Excel via server
+    $('#btnExportFiltered').on('click', function() {
+        var sv = table.search();
+        window.location.href = '/HR/EmployeeDetailReport/ExportListExcel?search=' + encodeURIComponent(sv || '');
     });
 });
 </script>

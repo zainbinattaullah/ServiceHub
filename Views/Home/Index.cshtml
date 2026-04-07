@@ -1,176 +1,370 @@
-﻿@model ServiceHub.Areas.HR.Models.DashboardViewModel
+@model ServiceHub.Areas.HR.Models.DashboardViewModel
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Dashboard";
+    ViewData["PageIcon"] = "fas fa-tachometer-alt";
+    var months = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.MonthNames.Take(12).ToArray();
 }
 
-<!--begin::App Main-->
 <main class="app-main">
-    <!--begin::App Content Header-->
     <div class="app-content-header">
-        <!--begin::Container-->
         <div class="container-fluid">
-            <!--begin::Row-->
-            <div class="row">
-                <div class="col-sm-6">
-                    <h3 class="mb-0">Dashboard</h3>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-end">
-                        <li class="breadcrumb-item"><a href="#">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                    </ol>
-                </div>
-            </div>
-            <!--end::Row-->
+                    <div class="d-flex flex-wrap gap-2 justify-content-end align-items-center">
+                        <!-- Month/Year Picker -->
+                        @Html.Raw("<select id=\"filterMonth\" class=\"form-select form-select-sm\" style=\"width:130px\">")
+                        @for (int i = 0; i < 12; i++)
+                        {
+                            var sel = Model.FilterMonth == i + 1 ? " selected" : "";
+                            @Html.Raw($"<option value=\"{i + 1}\"{sel}>{months[i]}</option>")
+                        }
+                        @Html.Raw("</select>")
+
+                        @Html.Raw("<select id=\"filterYear\" class=\"form-select form-select-sm\" style=\"width:100px\">")
+                        @for (int yr = DateTime.Now.Year; yr >= DateTime.Now.Year - 3; yr--)
+                        {
+                            var sel = Model.FilterYear == yr ? " selected" : "";
+                            @Html.Raw($"<option value=\"{yr}\"{sel}>{yr}</option>")
+                        }
+                        @Html.Raw("</select>")
+
+                        <!-- Machine Filter -->
+                        @Html.Raw("<select id=\"filterMachine\" class=\"form-select form-select-sm\" style=\"width:180px\">")
+                        @Html.Raw("<option value=\"\">All Machines</option>")
+                        @foreach (var m in Model.Machines)
+                        {
+                            var sel = Model.FilterMachineIP == m.IpAddress ? " selected" : "";
+                            var label = $"{m.Name} ({(m.IsActive ? "Active" : "Inactive")})";
+                            @Html.Raw($"<option value=\"{m.IpAddress}\"{sel}>{label}</option>")
+                        }
+                        @Html.Raw("</select>")
+
+                        <!-- Status Filter -->
+                        @Html.Raw("<select id=\"filterStatus\" class=\"form-select form-select-sm\" style=\"width:130px\">")
+                        @{
+                            var fs = Model.FilterStatus ?? "all";
+                        }
+                        @Html.Raw($"<option value=\"all\"{(fs == "all" ? " selected" : "")}>All Status</option>")
+                        @Html.Raw($"<option value=\"active\"{(fs == "active" ? " selected" : "")}>Active Only</option>")
+                        @Html.Raw($"<option value=\"inactive\"{(fs == "inactive" ? " selected" : "")}>Inactive Only</option>")
+                        @Html.Raw("</select>")
+                        <button id="btnRefresh" class="btn btn-sm btn-gradient" title="Apply Filters">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                    </div>
         </div>
-        <!--end::Container-->
     </div>
+
     <div class="app-content">
-        <!--begin::Container-->
         <div class="container-fluid">
-            <!-- Info boxes -->
-            <div class="row">
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-primary shadow-sm"> <i class="bi bi-check-circle-fill"></i> </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text"><strong>Successfully Connected Devices</strong></span>
-                            <span class="info-box-number">@Model.SuccessfullyConnected</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-danger shadow-sm"> <i class="bi bi-x-circle-fill"></i> </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text"><strong>Connection Failed Devices</strong></span>
-                            <span class="info-box-number">@Model.FailedConnections</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-success shadow-sm"> <i class="bi bi-clipboard-data-fill"></i> </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text"><strong>Total Record Fetched</strong></span>
-                            <span class="info-box-number">@Model.TotalRecordsFetched</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                    <div class="info-box">
-                        <span class="info-box-icon text-bg-warning shadow-sm"> <i class="bi bi-device-ssd"></i> </span>
-                        <div class="info-box-content">
-                            <span class="info-box-text"><strong>Machines Status</strong></span>
-                            <span class="info-box-number">Active: @Model.ActiveMachines, Inactive: @Model.InactiveMachines</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- /.row -->
-            <!-- Chart Section -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <h4>Attendance Records</h4>
+
+            <!-- ══════════════════ STAT CARDS ══════════════════ -->
+            <div class="row g-3 mb-4">
+                <!-- Card 1: Connected Devices -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-primary)">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value" id="cardSuccess">@Model.SuccessfullyConnected</div>
+                                <div class="sh-stat-label">Connected Devices</div>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div id="chart"></div>
-                            <!-- Placeholder for no data -->
-                            @if (Model.ChartData == null || !Model.ChartData.Any())
-                            {
-                                <div class="text-center text-muted py-4">
-                                    <i class="bi bi-bar-chart-line-fill fs-1"></i>
-                                    <p class="mt-2">No data available for the chart.</p>
+                    </div>
+                </div>
+                <!-- Card 2: Failed Connections -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-danger)">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value" id="cardFailed">@Model.FailedConnections</div>
+                                <div class="sh-stat-label">Connection Failed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 3: Records Fetched -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-success)">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value" id="cardFetched">@Model.TotalRecordsFetched</div>
+                                <div class="sh-stat-label">Records Fetched</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 4: Machines -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-warning)">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value">
+                                    <span id="cardActive">@Model.ActiveMachines</span>
+                                    <small class="text-muted">/</small>
+                                    <span id="cardInactive" class="text-muted">@Model.InactiveMachines</span>
                                 </div>
-                            }
+                                <div class="sh-stat-label">Active / Inactive</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 5: Employees -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-purple)">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value" id="cardEmps">@Model.TotalEmployees</div>
+                                <div class="sh-stat-label">Total Employees</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 6: Enrolled -->
+                <div class="col-6 col-md-4 col-xl">
+                    <div class="card h-100 border-0 sh-stat-card">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="sh-stat-icon" style="background:var(--sh-grad-info)">
+                                <i class="fas fa-fingerprint"></i>
+                            </div>
+                            <div>
+                                <div class="sh-stat-value" id="cardEnrolled">@Model.EnrolledEmployees</div>
+                                <div class="sh-stat-label">Biometric Enrolled</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- ══════════════════ CHARTS ROW ══════════════════ -->
+            <div class="row g-3 mb-4">
+                <!-- Attendance Trend (area chart) -->
+                <div class="col-lg-8">
+                    <div class="card border-0 h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-chart-area me-2" style="color:var(--sh-primary)"></i>Attendance Trend</h5>
+                            <span class="badge bg-secondary" id="chartPeriod">
+                                @months[Model.FilterMonth - 1] @Model.FilterYear
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div id="attendanceChart" style="min-height:360px"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Machine Breakdown (donut chart) -->
+                <div class="col-lg-4">
+                    <div class="card border-0 h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2" style="color:var(--sh-primary)"></i>Records by Machine</h5>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            <div id="machineDonut" style="width:100%; min-height:320px"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════ RECENT ACTIVITY ══════════════════ -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="card border-0">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-history me-2" style="color:var(--sh-primary)"></i>Recent 15 Attendance Records</h5>
+                            <a href="/HR/HRSwapRecords/Index" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="recentTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:50px">#</th>
+                                            <th>Employee</th>
+                                            <th>Name</th>
+                                            <th>Machine</th>
+                                            <th>Direction</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentBody">
+                                        @{ int idx = 0; }
+                                        @foreach (var a in Model.RecentActivity)
+                                        {
+                                            idx++;
+                                            var dirClass = a.Direction == "In" ? "bg-success" : a.Direction == "Out" ? "bg-danger" : "bg-secondary";
+                                            <tr>
+                                                <td>@idx</td>
+                                                <td><strong>@a.EmpNo</strong></td>
+                                                <td>@a.EmpName</td>
+                                                <td>@a.MachineName</td>
+                                                <td><span class="badge @dirClass">@a.Direction</span></td>
+                                                <td>@a.SwapTime?.ToString("dd MMM yyyy HH:mm")</td>
+                                            </tr>
+                                        }
+                                        @if (!Model.RecentActivity.Any())
+                                        {
+                                            <tr><td colspan="6" class="text-center text-muted py-4">No recent activity</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <!--end::Container-->
     </div>
-    <!--end::App Content-->
 </main>
-<!--end::App Main-->
-@* <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> *@
-<script src="~/js/apexcharts.js"></script>
+
 @section Scripts {
-    <script>
-        var chartData = @Html.Raw(Json.Serialize(Model.ChartData ?? new List<int>()));
-        var chartLabels = @Html.Raw(Json.Serialize(Model.ChartLabels ?? new List<string>()));
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .select2-container--bootstrap-5 .select2-selection { background:var(--sh-surface,#fff); color:var(--sh-text,#1e293b); border-color:var(--sh-border,#dee2e6); min-height:31px; padding:2px 4px; font-size:.875rem; }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered { line-height:25px; color:var(--sh-text,#1e293b); }
+    .select2-dropdown { background:var(--sh-surface,#fff); border-color:var(--sh-border,#dee2e6); }
+    .select2-search__field { background:var(--sh-surface,#fff) !important; color:var(--sh-text,#1e293b) !important; }
+    .select2-results__option { color:var(--sh-text,#1e293b); }
+    .select2-results__option--highlighted { background:var(--sh-primary,#0d6efd) !important; color:#fff !important; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+(function() {
 
-        var options = {
-            chart: {
-                type: 'area', // Set chart type to 'area'
-                height: 500, // Set the height of the chart
-                toolbar: {
-                    show: false // Hide the toolbar (zoom, download, etc.)
-                }
-            },
-            series: [{
-                name: 'Records Fetched',
-                data: chartData
-            }],
-            xaxis: {
-                categories: chartLabels,
-                labels: {
-                    style: {
-                        colors: '#6B7280', // Customize x-axis label color
-                        fontSize: '12px'
-                    }
-                }
-            },
-            yaxis: {
-                labels: {
-                    style: {
-                        colors: '#6B7280', // Customize y-axis label color
-                        fontSize: '12px'
-                    }
-                }
-            },
-            dataLabels: {
-                enabled: false // Disable data labels on the chart
-            },
-            stroke: {
-                curve: 'smooth', // Smooth curve for the area chart
-                width: 2
-            },
-            fill: {
-                type: 'gradient', // Add gradient fill
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.7,
-                    opacityTo: 0.3,
-                    stops: [0, 100]
-                }
-            },
-            colors: ['#3B82F6'], // Customize the chart color
-            tooltip: {
-                enabled: true,
-                style: {
-                    fontSize: '12px'
-                }
-            },
-            noData: {
-                text: 'No data available', // Display this text if no data is available
-                align: 'center',
-                verticalAlign: 'middle',
-                offsetX: 0,
-                offsetY: 0,
-                style: {
-                    color: '#6B7280',
-                    fontSize: '14px',
-                    fontFamily: 'Arial'
-                }
-            }
-        };
+    "use strict";
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-    </script>
+    // ── Select2 on Machine filter ─────────────────────────────
+    $('#filterMachine').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'All Machines',
+        allowClear: true,
+        width: '220px'
+    });
+
+    // ── Chart theme colors ─────────────────────────────────────
+    var cs = getComputedStyle(document.documentElement);
+    var primary   = cs.getPropertyValue('--sh-primary').trim()   || '#0d6efd';
+    var textColor = cs.getPropertyValue('--sh-text-muted').trim() || '#6c757d';
+    var surface   = cs.getPropertyValue('--sh-surface').trim()   || '#ffffff';
+
+    var donutPalette = ['#4facfe','#43e97b','#f5365c','#ffd200','#764ba2','#00f2fe','#f56036','#17a2b8','#38f9d7','#667eea'];
+
+    // ── Initial chart data from model ──────────────────────────
+    var chartLabels      = @Html.Raw(Json.Serialize(Model.ChartLabels));
+    var chartData        = @Html.Raw(Json.Serialize(Model.ChartData));
+    var machineNames     = @Html.Raw(Json.Serialize(Model.MachineNames));
+    var machineRecCounts = @Html.Raw(Json.Serialize(Model.MachineRecordCounts));
+
+    // ── Attendance Area Chart ──────────────────────────────────
+    var areaChart = new ApexCharts(document.querySelector("#attendanceChart"), {
+        chart: { type:'area', height:360, fontFamily:'inherit', toolbar:{ show:false },
+                 foreColor: textColor, background: 'transparent' },
+        series: [{ name:'Records', data: chartData }],
+        xaxis:  { categories: chartLabels,
+                  labels:{ style:{ fontSize:'11px' } },
+                  axisBorder:{ show:false }, axisTicks:{ show:false } },
+        yaxis:  { labels:{ style:{ fontSize:'11px' } } },
+        stroke: { curve:'smooth', width:3 },
+        fill:   { type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.55, opacityTo:0.05, stops:[0,100] } },
+        colors: [primary],
+        dataLabels: { enabled:false },
+        grid:   { borderColor:'var(--sh-border,#dee2e6)', strokeDashArray:4 },
+        tooltip:{ theme: document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light',
+                  y:{ formatter: function(v){ return v + ' records'; } } },
+        noData: { text:'No attendance data for this period', style:{ color:textColor, fontSize:'14px' } }
+    });
+    areaChart.render();
+
+    // ── Machine Donut Chart ────────────────────────────────────
+    var donutChart = new ApexCharts(document.querySelector("#machineDonut"), {
+        chart: { type:'donut', height:320, fontFamily:'inherit', background:'transparent' },
+        series: machineRecCounts.length ? machineRecCounts : [1],
+        labels: machineNames.length ? machineNames : ['No data'],
+        colors: donutPalette,
+        legend: { position:'bottom', fontSize:'12px', labels:{ colors: textColor } },
+        plotOptions: { pie:{ donut:{ size:'60%',
+            labels:{ show:true, total:{ show:true, label:'Total', fontSize:'13px', color: textColor } } } } },
+        dataLabels: { enabled:false },
+        stroke: { width:2, colors:[surface] },
+        noData: { text:'No machine data' }
+    });
+    donutChart.render();
+
+    // ── Filter AJAX refresh ────────────────────────────────────
+    document.getElementById('btnRefresh').addEventListener('click', refreshDashboard);
+
+    function refreshDashboard() {
+        var btn   = document.getElementById('btnRefresh');
+        var month = document.getElementById('filterMonth').value;
+        var year  = document.getElementById('filterYear').value;
+        var ip    = document.getElementById('filterMachine').value;
+        var st    = document.getElementById('filterStatus').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
+
+        fetch('/Home/DashboardData?month=' + month + '&year=' + year
+              + '&machineIP=' + encodeURIComponent(ip) + '&status=' + st)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                // Update stat cards
+                document.getElementById('cardSuccess').textContent  = d.successfullyConnected;
+                document.getElementById('cardFailed').textContent    = d.failedConnections;
+                document.getElementById('cardFetched').textContent   = d.totalRecordsFetched;
+                document.getElementById('cardActive').textContent    = d.activeMachines;
+                document.getElementById('cardInactive').textContent  = d.inactiveMachines;
+                document.getElementById('cardEmps').textContent      = d.totalEmployees;
+                document.getElementById('cardEnrolled').textContent   = d.enrolledEmployees;
+
+                // Update period badge
+                var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                document.getElementById('chartPeriod').textContent = monthNames[parseInt(month)-1] + ' ' + year;
+
+                // Update area chart
+                areaChart.updateOptions({
+                    xaxis: { categories: d.chartLabels },
+                    series: [{ name:'Records', data: d.chartData }]
+                });
+
+                // Update donut chart
+                donutChart.updateOptions({
+                    series: d.machineRecordCounts.length ? d.machineRecordCounts : [1],
+                    labels: d.machineNames.length ? d.machineNames : ['No data']
+                });
+
+                // Update recent activity table
+                var body = document.getElementById('recentBody');
+                if (d.recentActivity && d.recentActivity.length) {
+                    body.innerHTML = d.recentActivity.map(function(a, i) {
+                        var dc = a.direction === 'In' ? 'bg-success' : a.direction === 'Out' ? 'bg-danger' : 'bg-secondary';
+                        return '<tr><td>'+(i+1)+'</td><td><strong>'+a.empNo+'</strong></td>'
+                             + '<td>'+a.empName+'</td><td>'+a.machineName+'</td>'
+                             + '<td><span class="badge '+dc+'">'+a.direction+'</span></td>'
+                             + '<td>'+(a.swapTime||'')+'</td></tr>';
+                    }).join('');
+                } else {
+                    body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No recent activity</td></tr>';
+                }
+            })
+            .catch(function(err) { console.error('Dashboard refresh failed', err); })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh';
+            });
+    }
+})();
+</script>
 }

@@ -1,24 +1,309 @@
-﻿@{
-    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout !=  null)
-    {
-        Layout = parentLayout.ToString();
-    }
-    else
-    {
-        Layout = "/Areas/Identity/Pages/_Layout.cshtml";
-    }
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Manage your account</h1>
+<style>
+    .manage-hero {
+        background: linear-gradient(135deg, var(--sh-primary, #1e3a5f) 0%, #2d5a96 60%, #4f8fea 100%);
+        border-radius: 16px;
+        padding: 32px 36px;
+        margin-bottom: 28px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(30, 58, 95, 0.25);
+    }
 
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-md-3">
+    .manage-hero::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .manage-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: 20%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .manage-hero-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .manage-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: #fff;
+        font-weight: 800;
+        backdrop-filter: blur(10px);
+        flex-shrink: 0;
+    }
+
+    .manage-hero h2 {
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 4px;
+    }
+
+    .manage-hero p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 13px;
+        margin: 0;
+    }
+
+    /* Side navigation */
+    .manage-nav {
+        background: var(--sh-card-bg, #fff);
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        padding: 8px;
+        border: 1px solid var(--sh-border, #e2e8f0);
+    }
+
+    .manage-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        color: var(--sh-text, #475569);
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        margin-bottom: 2px;
+    }
+
+    .manage-nav .nav-link:hover {
+        background: rgba(79, 143, 234, 0.08);
+        color: var(--sh-primary, #1e3a5f);
+    }
+
+    .manage-nav .nav-link.active {
+        background: linear-gradient(135deg, var(--sh-primary, #1e3a5f), #4f8fea);
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(79, 143, 234, 0.3);
+    }
+
+    .manage-nav .nav-link i {
+        width: 20px;
+        text-align: center;
+        font-size: 15px;
+    }
+
+    /* Content card */
+    .manage-content-card {
+        background: var(--sh-card-bg, #fff);
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 1px solid var(--sh-border, #e2e8f0);
+        overflow: hidden;
+    }
+
+    .manage-content-header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--sh-border, #e2e8f0);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .manage-content-header .header-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--sh-primary, #1e3a5f), #4f8fea);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .manage-content-header h5 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--sh-text, #1e293b);
+    }
+
+    .manage-content-header p {
+        margin: 0;
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    .manage-content-body {
+        padding: 28px;
+    }
+
+    /* Form fields inside manage pages */
+    .manage-field {
+        margin-bottom: 22px;
+    }
+
+    .manage-field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+
+    .manage-field .form-control {
+        height: 48px;
+        border: 2px solid var(--sh-border, #e2e8f0);
+        border-radius: 10px;
+        padding: 10px 16px 10px 44px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--sh-text, #1e293b);
+        background: var(--sh-card-bg, #f8fafc);
+        transition: all 0.25s ease;
+    }
+
+    .manage-field .form-control:focus {
+        border-color: #4f8fea;
+        box-shadow: 0 0 0 4px rgba(79, 143, 234, 0.1);
+        background: #fff;
+    }
+
+    .manage-field .form-control:disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+    }
+
+    .manage-field .input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 16px;
+        pointer-events: none;
+    }
+
+    .manage-field .input-wrapper {
+        position: relative;
+    }
+
+    .manage-field .toggle-pw {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 4px;
+        z-index: 2;
+        transition: color 0.2s;
+    }
+
+    .manage-field .toggle-pw:hover { color: var(--sh-primary, #1e3a5f); }
+
+    /* Submit button */
+    .manage-submit {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 48px;
+        padding: 0 32px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--sh-primary, #1e3a5f), #4f8fea);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 143, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .manage-submit::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        transition: left 0.5s;
+    }
+
+    .manage-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 143, 234, 0.4);
+    }
+
+    .manage-submit:hover::before { left: 100%; }
+
+    /* Status message */
+    .manage-status {
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+</style>
+
+@{
+    var uName    = User.Identity?.Name ?? "User";
+    var namePart = uName.Split('@')[0];
+    var initials = namePart.Length >= 2
+        ? namePart.Substring(0, 2).ToUpper()
+        : namePart.ToUpper();
+}
+
+<!-- Hero Banner -->
+<div class="manage-hero">
+    <div class="manage-hero-content">
+        <div class="manage-avatar">@initials</div>
+        <div>
+            <h2>Account Settings</h2>
+            <p><i class="fas fa-user-circle me-1"></i> @uName</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Side Nav -->
+    <div class="col-md-3">
+        <div class="manage-nav">
             <partial name="_ManageNav" />
         </div>
-        <div class="col-md-9">
+    </div>
+
+    <!-- Content -->
+    <div class="col-md-9">
+        <div class="manage-content-card">
             @RenderBody()
         </div>
     </div>
@@ -26,4 +311,18 @@
 
 @section Scripts {
     @RenderSection("Scripts", required: false)
+    <script>
+        // Password toggle in manage pages
+        $(document).on('click', '.toggle-pw', function () {
+            var input = $(this).siblings('input');
+            var icon  = $(this).find('i');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+    </script>
 }

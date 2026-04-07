@@ -1,0 +1,55 @@
+@using ServiceHub.Services
+@model List<MenuNode>
+
+@{
+    string currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+}
+
+@foreach (var node in Model)
+{
+    if (node.IsGroup)
+    {
+        bool anyChildActive = node.Children.Any(c =>
+            !string.IsNullOrEmpty(c.ResolvedUrl) &&
+            c.ResolvedUrl != "#" &&
+            currentPath.StartsWith(c.ResolvedUrl.ToLower()));
+
+        <li class="nav-item @(anyChildActive ? "menu-open" : "")">
+            <a href="#" class="nav-link @(anyChildActive ? "active-parent" : "")">
+                <i class="nav-icon @(node.Icon ?? "fas fa-circle")"></i>
+                <p>
+                    @node.Name
+                    <i class="nav-arrow fas fa-angle-right"></i>
+                </p>
+            </a>
+            <ul class="nav nav-treeview" style="@(anyChildActive ? "display:block" : "display:none")">
+                @foreach (var child in node.Children)
+                {
+                    bool childActive = !string.IsNullOrEmpty(child.ResolvedUrl) &&
+                                       child.ResolvedUrl != "#" &&
+                                       currentPath.StartsWith(child.ResolvedUrl.ToLower());
+                    <li class="nav-item">
+                        <a href="@child.ResolvedUrl"
+                           class="nav-link @(childActive ? "active" : "")">
+                            <i class="nav-icon @(child.Icon ?? "fas fa-dot-circle")"></i>
+                            <p>@child.Name</p>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+    else
+    {
+        bool isActive = !string.IsNullOrEmpty(node.ResolvedUrl) &&
+                        node.ResolvedUrl != "#" &&
+                        currentPath.StartsWith(node.ResolvedUrl.ToLower());
+        <li class="nav-item">
+            <a href="@node.ResolvedUrl"
+               class="nav-link @(isActive ? "active" : "")">
+                <i class="nav-icon @(node.Icon ?? "fas fa-circle")"></i>
+                <p>@node.Name</p>
+            </a>
+        </li>
+    }
+}

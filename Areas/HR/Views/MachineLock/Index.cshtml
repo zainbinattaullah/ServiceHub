@@ -1,9 +1,11 @@
 ﻿@model ServiceHub.Areas.HR.Models.MachineLockPageViewModel
 @{
     ViewData["Title"] = "Machine Lock / Unlock Dashboard";
+    ViewData["PageIcon"] = "fas fa-lock";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<link href="~/css/select2.css" rel="stylesheet" />
 <style>
     :root {
         --navy:      #1e3a5f;
@@ -14,9 +16,6 @@
         --online:    #20c763;
         --offline:   #e53e5a;
         --pending:   #fd7e14;
-        --card-bg:   #ffffff;
-        --border:    #dde3ec;
-        --shadow:    0 2px 12px rgba(30,58,95,0.10);
     }
 
     /* Summary cards */
@@ -28,9 +27,9 @@
     }
 
     .lock-card {
-        background: var(--card-bg);
+        background: var(--sh-surface, #fff);
         border-radius: 10px;
-        box-shadow: var(--shadow);
+        box-shadow: var(--sh-shadow);
         padding: 18px 22px;
         display: flex;
         align-items: center;
@@ -60,14 +59,14 @@
     }
 
     .lc-value {
-        font-size: 30px; font-weight: 800; color: #1a2535;
+        font-size: 30px; font-weight: 800; color: var(--sh-text, #1a2535);
         font-family: 'Courier New', monospace;
     }
 
     /* Filter bar */
     .filter-bar {
-        background: var(--card-bg); border-radius: 10px;
-        box-shadow: var(--shadow); padding: 14px 18px;
+        background: var(--sh-surface, #fff); border-radius: 10px;
+        box-shadow: var(--sh-shadow); padding: 14px 18px;
         margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap;
         align-items: flex-end;
     }
@@ -76,17 +75,17 @@
 
     .fg label {
         font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .05em; color: #6b7a94;
+        letter-spacing: .05em; color: var(--sh-text-muted, #6b7a94);
     }
 
     .fg select, .fg input[type="text"] {
-        border: 1.5px solid var(--border); border-radius: 6px;
-        padding: 5px 9px; font-size: 13px; background: #f7f9fc;
-        outline: none; height: 32px; transition: border-color .15s;
+        border: 1.5px solid var(--sh-border); border-radius: 6px;
+        padding: 5px 9px; font-size: 13px; background: var(--sh-surface, #f7f9fc);
+        color: var(--sh-text); outline: none; height: 32px; transition: border-color .15s;
     }
 
     .fg select:focus, .fg input:focus {
-        border-color: var(--navy); background: #fff;
+        border-color: var(--sh-primary); background: var(--sh-surface);
     }
 
     /* Bulk action bar */
@@ -102,12 +101,12 @@
 
     /* Table card */
     .table-card {
-        background: var(--card-bg); border-radius: 10px;
-        box-shadow: var(--shadow); overflow: hidden;
+        background: var(--sh-surface, #fff); border-radius: 10px;
+        box-shadow: var(--sh-shadow); overflow: hidden;
     }
 
     .table-card-header {
-        background: var(--navy); color: #fff;
+        background: var(--sh-primary, #1e3a5f); color: #fff;
         padding: 13px 20px; display: flex;
         align-items: center; justify-content: space-between;
         flex-wrap: wrap; gap: 8px;
@@ -162,13 +161,13 @@
     .btn-refresh.spinning i { animation: spin-it .7s linear infinite; }
 
     #lockTable thead th {
-        background: #f0f4fa; color: var(--navy);
+        background: var(--sh-surface-alt, #f0f4fa); color: var(--sh-primary);
         font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .04em; border-bottom: 2px solid var(--border);
+        letter-spacing: .04em; border-bottom: 2px solid var(--sh-border);
         white-space: nowrap;
     }
 
-    #lockTable tbody tr:hover { background: #f7f9fd; }
+    #lockTable tbody tr:hover { background: var(--sh-surface-alt, #f7f9fd); }
 
     /* History modal table */
     .hist-table th { background: #1e3a5f; color:#fff; font-size:12px; }
@@ -392,6 +391,7 @@
 </div>
 
 @section Scripts {
+<script src="~/js/select2.js"></script>
 <script>
 $(function () {
 
@@ -399,6 +399,12 @@ $(function () {
         console.error('DataTables not loaded.');
         return;
     }
+
+    // Initialize Select2 on filter dropdowns
+    $('#fLoc, #fArea, #fRegion, #fLock, #fConn').select2({
+        width: '100%',
+        minimumResultsForSearch: 5
+    });
 
     // ----------------------------------------------------------------
     //  State
@@ -766,7 +772,7 @@ $(function () {
     // ----------------------------------------------------------------
     $('#btnApply').on('click', function () { table.ajax.reload(); });
     $('#btnClear').on('click', function () {
-        $('#fLoc,#fArea,#fRegion,#fLock,#fConn').val('');
+        $('#fLoc,#fArea,#fRegion,#fLock,#fConn').val('').trigger('change');
         $('#fMachine').val('');
         table.ajax.reload();
     });

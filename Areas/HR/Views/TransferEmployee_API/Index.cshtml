@@ -1,44 +1,30 @@
 ﻿@{
     ViewData["Title"] = "Fetch Attendance";
+    ViewData["PageIcon"] = "fas fa-exchange-alt";
 }
 <style>
-    .Cust-card-margin {
-        margin: 5px !important;
-    }
-
-    .table {
-        margin-bottom: 0 !important;
-    }
-
     .selected-items {
         margin-top: 10px;
         padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: #f9f9f9;
+        border: 1px solid var(--sh-border, #dde3ec);
+        border-radius: 8px;
+        background: var(--sh-card-bg, #f9f9f9);
     }
-
     .selected-item {
         display: inline-block;
-        margin-right: 5px;
-        margin-bottom: 5px;
-        padding: 3px 8px;
-        background-color: #e9ecef;
-        border-radius: 3px;
+        margin: 2px 5px 2px 0;
+        padding: 4px 10px;
+        background: var(--sh-primary, #1e3a5f);
+        color: #fff;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
     }
-
-    .time-window-alert {
-        margin-bottom: 20px;
-        padding: 15px;
-        border-radius: 4px;
-    }
-
     .time-window-open {
         background-color: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
     }
-
     .time-window-closed {
         background-color: #f8d7da;
         color: #721c24;
@@ -47,25 +33,20 @@
 </style>
 <div class="row">
     <div class="col-lg-12">
-        <div class="time-window-alert @(ViewBag.IsTransferWindowOpen ? "time-window-open" : "time-window-closed")">
-            @ViewBag.TransferWindowMessage
-            <div id="nextWindowChange"></div>
+        <div class="time-window-alert mb-3 p-3 rounded @(ViewBag.IsTransferWindowOpen ? "time-window-open" : "time-window-closed")">
+            <i class="fas fa-clock me-1"></i> @ViewBag.TransferWindowMessage
+            <div id="nextWindowChange" class="mt-1 fw-bold"></div>
             <div id="transferWindowsList"></div>
         </div>
 
-        <div class="card Cust-card-margin">
-            <div class="card-header">
-                <div class="card-title">
-                    <h3>Fetch and Transfer Employees</h3>
-                </div>
-            </div>
+        <div class="card">
             <div class="card-body">
                 <div class="row mt-3">
                     <div class="col-md-2">
                         <label for="machineIPs">Source Machine IP:</label>
                     </div>
                     <div class="col-md-4">
-                        <select id="machineIPs" class="form-control" style="width: 100% !important;">
+                        <select id="machineIPs" class="form-select" style="width: 100% !important;">
                             <option value="">-- Select Source Machine IP --</option>
                         </select>
                     </div>
@@ -75,7 +56,7 @@
                         <label for="employeeDropdown">Employees:</label>
                     </div>
                     <div class="col-md-4">
-                        <select id="employeeDropdown" class="form-control" style="width: 100% !important;" multiple>
+                        <select id="employeeDropdown" class="form-select" style="width: 100% !important;" multiple>
                             <option value="">-- Select Employee(s) --</option>
                         </select>
                         <div id="selectedEmployees" class="selected-items" style="display: none;">
@@ -89,7 +70,7 @@
                         <label for="destinationIP">Destination Machine IP(s):</label>
                     </div>
                     <div class="col-md-4">
-                        <select id="destinationIP" class="form-control" style="width: 100% !important;" multiple>
+                        <select id="destinationIP" class="form-select" style="width: 100% !important;" multiple>
                             <option value="">-- Select Destination IP(s) --</option>
                         </select>
                         <div id="selectedDestinations" class="selected-items" style="display: none;">
@@ -113,8 +94,8 @@
                         </div>
                     </div>
                 </div>
-                <button id="fetchButton" class="btn btn-primary mt-3">Fetch Employees</button>
-                <button id="transferButton" class="btn btn-success mt-3"
+                <button id="fetchButton" class="btn btn-gradient mt-3"><i class="fas fa-download me-1"></i>Fetch Employees</button>
+                <button id="transferButton" class="btn btn-gradient-success mt-3"
                         disabled="@(!ViewBag.IsTransferWindowOpen)">
                     Transfer Selected Employees
                 </button>

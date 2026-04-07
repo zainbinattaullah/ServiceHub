@@ -1,0 +1,154 @@
+@using ServiceHub.Areas.HR.Models
+@model List<MenuItem>
+@{
+    ViewData["Title"] = "Menu Management";
+    ViewData["PageIcon"] = "fas fa-bars";
+}
+
+<div class="row">
+    <div class="col-lg-12">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <a asp-action="Create" class="btn btn-sm btn-gradient">
+                    <i class="fas fa-plus-circle me-1"></i> Add Menu Item
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="input-group" style="max-width:350px;">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="menuSearch" class="form-control form-control-sm" placeholder="Search menu items..." />
+                    </div>
+                </div>
+                <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0" id="menuTable">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Name</th>
+                            <th>Icon</th>
+                            <th>Parent</th>
+                            <th>Controller / Action</th>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th style="width:200px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderBy(m => m.ParentId).ThenBy(m => m.OrderIndex))
+                        {
+                            <tr class="@(item.IsActive ? "" : "table-secondary opacity-50")">
+                                <td class="text-center">@item.OrderIndex</td>
+                                <td>
+                                    @if (item.ParentId.HasValue)
+                                    { <span class="ms-3 text-muted">&#8627;</span> }
+                                    <i class="@(item.Icon ?? "fas fa-circle") me-1"></i>
+                                    <strong>@item.Name</strong>
+                                </td>
+                                <td><code class="small">@item.Icon</code></td>
+                                <td>@(item.Parent?.Name ?? "---")</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.Controller))
+                                    {
+                                        <code>@item.Area / @item.Controller / @item.Action</code>
+                                    }
+                                    else { <span class="text-muted">---</span> }
+                                </td>
+                                <td><small class="text-muted">@(item.Url ?? "---")</small></td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm @(item.IsActive ? "btn-success" : "btn-secondary") btn-toggle-active"
+                                            data-id="@item.Id" title="Toggle Active">
+                                        <i class="fas @(item.IsActive ? "fa-toggle-on" : "fa-toggle-off")"></i>
+                                        @(item.IsActive ? "Active" : "Inactive")
+                                    </button>
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-gradient me-1" title="Edit">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <a asp-action="RoleAssignment" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-gradient-warning me-1" title="Assign Roles">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-gradient-danger btn-delete"
+                                            data-id="@item.Id" data-name="@item.Name" title="Delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i>Delete Menu Item</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="deleteItemName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Search filter
+$('#menuSearch').on('keyup', function () {
+    var val = $(this).val().toLowerCase();
+    $('#menuTable tbody tr').each(function () {
+        var text = $(this).text().toLowerCase();
+        $(this).toggle(text.indexOf(val) > -1);
+    });
+});
+
+// Toggle active
+$(document).on('click', '.btn-toggle-active', function () {
+    var id = $(this).data('id');
+    $.post('/HR/MenuManagement/ToggleActive', { id: id }, function (res) {
+        if (res.success) location.reload();
+    });
+});
+
+// Delete
+$(document).on('click', '.btn-delete', function () {
+    var id   = $(this).data('id');
+    var name = $(this).data('name');
+    $('#deleteItemName').text(name);
+    $('#deleteForm').attr('action', '/HR/MenuManagement/Delete/' + id);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+});
+</script>
+}

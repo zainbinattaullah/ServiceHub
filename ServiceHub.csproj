@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\Cust_Theme_Comp\css\NewFolder\**" />
+    <Content Remove="wwwroot\Cust_Theme_Comp\css\NewFolder\**" />
+    <EmbeddedResource Remove="wwwroot\Cust_Theme_Comp\css\NewFolder\**" />
+    <None Remove="wwwroot\Cust_Theme_Comp\css\NewFolder\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Views\pages\docs\browser-support.html" />
     <Content Include="Views\pages\docs\color-mode.html" />
     <Content Include="Views\pages\docs\components\main-header.html" />

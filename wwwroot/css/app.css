@@ -1,0 +1,871 @@
+/* =============================================================================
+   Service Hub — Global Application Stylesheet
+   Architecture: CSS Custom Properties (tokens) + BEM component classes
+   Themes:  light | dark | theme-blue | theme-green | theme-purple | theme-orange
+   All assets are LOCAL — no CDN references in this file.
+   ============================================================================= */
+
+/* ── 1. Design Tokens (Light — default) ─────────────────────────────────── */
+:root,
+html.theme-light {
+    /* Brand */
+    --sh-primary:        #0d6efd;
+    --sh-primary-dark:   #0a58ca;
+    --sh-primary-light:  #cfe2ff;
+    --sh-accent:         #4facfe;
+
+    /* Gradients */
+    --sh-grad-primary:   linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --sh-grad-success:   linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    --sh-grad-danger:    linear-gradient(135deg, #f5365c 0%, #f56036 100%);
+    --sh-grad-warning:   linear-gradient(135deg, #ffd200 0%, #f7971e 100%);
+    --sh-grad-info:      linear-gradient(135deg, #17a2b8 0%, #00c9ff 100%);
+    --sh-grad-purple:    linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+
+    /* Surfaces */
+    --sh-surface:        #ffffff;
+    --sh-surface-alt:    #f8f9fa;
+    --sh-border:         #dee2e6;
+    --sh-shadow:         0 2px 12px rgba(0,0,0,.08);
+    --sh-shadow-lg:      0 8px 30px rgba(0,0,0,.12);
+
+    /* Text */
+    --sh-text:           #212529;
+    --sh-text-muted:     #6c757d;
+    --sh-text-inverted:  #ffffff;
+
+    /* Sidebar */
+    --sh-sidebar-bg:     #1e293b;
+    --sh-sidebar-text:   #cbd5e1;
+    --sh-sidebar-active: #4facfe;
+    --sh-sidebar-hover:  rgba(255,255,255,.07);
+
+    /* Spacing tokens */
+    --sh-radius:         8px;
+    --sh-radius-lg:      14px;
+    --sh-radius-pill:    50px;
+    --sh-transition:     0.22s ease;
+
+    /* Avatar */
+    --sh-avatar-bg:      var(--sh-primary);
+    --sh-avatar-text:    #fff;
+
+    /* Role badges */
+    --sh-badge-admin-bg: #dc3545;
+    --sh-badge-hr-bg:    #0d6efd;
+    --sh-badge-user-bg:  #198754;
+}
+
+/* ── 2. Dark Theme ───────────────────────────────────────────────────────── */
+html.theme-dark {
+    --sh-primary:        #4facfe;
+    --sh-primary-dark:   #3a9ce8;
+    --sh-primary-light:  #1e3a5f;
+    --sh-accent:         #00f2fe;
+
+    --sh-grad-primary:   linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #0f172a 0%, #020617 100%);
+
+    --sh-surface:        #1e293b;
+    --sh-surface-alt:    #0f172a;
+    --sh-border:         #334155;
+    --sh-shadow:         0 2px 12px rgba(0,0,0,.35);
+    --sh-shadow-lg:      0 8px 30px rgba(0,0,0,.45);
+
+    --sh-text:           #e2e8f0;
+    --sh-text-muted:     #94a3b8;
+    --sh-text-inverted:  #0f172a;
+
+    --sh-sidebar-bg:     #0f172a;
+    --sh-sidebar-text:   #94a3b8;
+    --sh-sidebar-active: #4facfe;
+    --sh-sidebar-hover:  rgba(255,255,255,.05);
+
+    --sh-avatar-bg:      #4facfe;
+    --sh-avatar-text:    #0f172a;
+}
+
+/* ── 3. Blue Theme ───────────────────────────────────────────────────────── */
+html.theme-theme-blue {
+    --sh-primary:        #2563eb;
+    --sh-primary-dark:   #1d4ed8;
+    --sh-primary-light:  #dbeafe;
+    --sh-accent:         #60a5fa;
+    --sh-grad-primary:   linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #1e3a8a 0%, #1e293b 100%);
+    --sh-sidebar-bg:     #1e3a8a;
+    --sh-sidebar-text:   #bfdbfe;
+    --sh-sidebar-active: #60a5fa;
+    --sh-avatar-bg:      #2563eb;
+}
+
+/* ── 4. Green Theme ──────────────────────────────────────────────────────── */
+html.theme-theme-green {
+    --sh-primary:        #16a34a;
+    --sh-primary-dark:   #15803d;
+    --sh-primary-light:  #dcfce7;
+    --sh-accent:         #4ade80;
+    --sh-grad-primary:   linear-gradient(135deg, #16a34a 0%, #4ade80 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #14532d 0%, #052e16 100%);
+    --sh-sidebar-bg:     #14532d;
+    --sh-sidebar-text:   #bbf7d0;
+    --sh-sidebar-active: #4ade80;
+    --sh-avatar-bg:      #16a34a;
+}
+
+/* ── 5. Purple Theme ─────────────────────────────────────────────────────── */
+html.theme-theme-purple {
+    --sh-primary:        #7c3aed;
+    --sh-primary-dark:   #6d28d9;
+    --sh-primary-light:  #ede9fe;
+    --sh-accent:         #a78bfa;
+    --sh-grad-primary:   linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #3b0764 0%, #1e1b4b 100%);
+    --sh-sidebar-bg:     #3b0764;
+    --sh-sidebar-text:   #e9d5ff;
+    --sh-sidebar-active: #a78bfa;
+    --sh-avatar-bg:      #7c3aed;
+}
+
+/* ── 6. Orange Theme ─────────────────────────────────────────────────────── */
+html.theme-theme-orange {
+    --sh-primary:        #ea580c;
+    --sh-primary-dark:   #c2410c;
+    --sh-primary-light:  #ffedd5;
+    --sh-accent:         #fb923c;
+    --sh-grad-primary:   linear-gradient(135deg, #ea580c 0%, #fbbf24 100%);
+    --sh-grad-sidebar:   linear-gradient(180deg, #431407 0%, #1c0a00 100%);
+    --sh-sidebar-bg:     #431407;
+    --sh-sidebar-text:   #fed7aa;
+    --sh-sidebar-active: #fb923c;
+    --sh-avatar-bg:      #ea580c;
+}
+
+/* =============================================================================
+   BASE RESETS & TYPOGRAPHY
+   ============================================================================= */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { font-size: 14px; scroll-behavior: smooth; }
+@media (min-width: 768px) { html { font-size: 15px; } }
+@media (min-width: 1200px) { html { font-size: 16px; } }
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--sh-text);
+    background: var(--sh-surface-alt);
+    transition: background var(--sh-transition), color var(--sh-transition);
+    margin: 0;
+}
+
+a { color: var(--sh-primary); text-decoration: none; transition: color var(--sh-transition); }
+a:hover { color: var(--sh-primary-dark); }
+
+/* =============================================================================
+   SIDEBAR
+   ============================================================================= */
+.app-sidebar {
+    background: var(--sh-sidebar-bg) !important;
+    background-image: var(--sh-grad-sidebar) !important;
+    transition: width var(--sh-transition), background var(--sh-transition);
+}
+
+.sidebar-brand {
+    background: rgba(0,0,0,.25);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    padding: 14px 16px;
+}
+
+.brand-text {
+    color: #fff;
+    font-size: 1.05rem;
+    letter-spacing: .3px;
+}
+
+/* Nav items */
+.sidebar-menu .nav-item .nav-link {
+    color: var(--sh-sidebar-text);
+    border-radius: var(--sh-radius);
+    margin: 2px 8px;
+    padding: 9px 12px;
+    transition: background var(--sh-transition), color var(--sh-transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-menu .nav-item .nav-link:hover {
+    background: var(--sh-sidebar-hover);
+    color: #fff;
+}
+
+.sidebar-menu .nav-item .nav-link.active {
+    background: var(--sh-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
+
+/* Active parent (group with active child) */
+.sidebar-menu .nav-item .nav-link.active-parent {
+    color: var(--sh-sidebar-active) !important;
+    font-weight: 600;
+}
+
+/* Nested treeview indent */
+.nav-treeview .nav-item { margin-left: 16px !important; }
+.nav-treeview .nav-item .nav-link { font-size: .9rem; }
+
+/* Nav arrows */
+.nav-arrow { margin-left: auto; font-size: .75rem; transition: transform var(--sh-transition); }
+.menu-open > a > .nav-arrow { transform: rotate(90deg); }
+
+/* =============================================================================
+   TOP NAVBAR
+   ============================================================================= */
+.app-header {
+    border-bottom: 1px solid var(--sh-border);
+    box-shadow: var(--sh-shadow);
+    backdrop-filter: blur(8px);
+    transition: border-color var(--sh-transition);
+}
+
+/* Avatar circle */
+.sh-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--sh-grad-primary);
+    color: var(--sh-avatar-text);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    flex-shrink: 0;
+}
+
+/* Role badges */
+.sh-badge-admin {
+    background: var(--sh-badge-admin-bg, #dc3545);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: var(--sh-radius-pill);
+    padding: 2px 8px;
+}
+.sh-badge-hr {
+    background: var(--sh-badge-hr-bg, #0d6efd);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: var(--sh-radius-pill);
+    padding: 2px 8px;
+}
+.sh-badge-user {
+    background: var(--sh-badge-user-bg, #198754);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: var(--sh-radius-pill);
+    padding: 2px 8px;
+}
+
+/* =============================================================================
+   CARDS
+   ============================================================================= */
+.card {
+    border: 1px solid var(--sh-border);
+    border-radius: var(--sh-radius-lg);
+    box-shadow: var(--sh-shadow);
+    background: var(--sh-surface);
+    transition: box-shadow var(--sh-transition);
+}
+.card:hover { box-shadow: var(--sh-shadow-lg); }
+
+.card-header {
+    background: var(--sh-surface);
+    border-bottom: 1px solid var(--sh-border);
+    border-radius: var(--sh-radius-lg) var(--sh-radius-lg) 0 0 !important;
+    font-weight: 600;
+    padding: 14px 20px;
+}
+
+.card-header.sh-card-header--gradient {
+    background: var(--sh-grad-primary);
+    color: #fff;
+    border-bottom: none;
+}
+
+/* =============================================================================
+   BUTTONS — Gradient variants
+   ============================================================================= */
+
+/* Base gradient button */
+.btn-gradient {
+    background: var(--sh-grad-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--sh-radius);
+    padding: 8px 20px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    transition: opacity var(--sh-transition), transform var(--sh-transition),
+                box-shadow var(--sh-transition);
+    box-shadow: 0 4px 14px rgba(13,110,253,.35);
+}
+.btn-gradient:hover  { opacity: .9; transform: translateY(-1px); color: #fff; box-shadow: 0 6px 20px rgba(13,110,253,.4); }
+.btn-gradient:active { transform: translateY(0); }
+
+.btn-gradient-success {
+    background: var(--sh-grad-success);
+    box-shadow: 0 4px 14px rgba(25,135,84,.35);
+}
+.btn-gradient-danger {
+    background: var(--sh-grad-danger);
+    box-shadow: 0 4px 14px rgba(220,53,69,.35);
+}
+.btn-gradient-warning {
+    background: var(--sh-grad-warning);
+    color: #212529;
+    box-shadow: 0 4px 14px rgba(255,193,7,.35);
+}
+.btn-gradient-info {
+    background: var(--sh-grad-info);
+    box-shadow: 0 4px 14px rgba(23,162,184,.35);
+}
+.btn-gradient-purple {
+    background: var(--sh-grad-purple);
+    box-shadow: 0 4px 14px rgba(124,58,237,.35);
+}
+
+/* Standard button overrides using tokens */
+.btn:focus, .btn:active:focus,
+.form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.15rem var(--sh-primary-light);
+    border-color: var(--sh-primary);
+    outline: none;
+}
+
+/* =============================================================================
+   FORMS
+   ============================================================================= */
+.form-control, .form-select {
+    border-radius: var(--sh-radius);
+    border-color: var(--sh-border);
+    background-color: var(--sh-surface);
+    color: var(--sh-text);
+    transition: border-color var(--sh-transition), box-shadow var(--sh-transition);
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--sh-primary);
+    background-color: var(--sh-surface);
+    color: var(--sh-text);
+}
+.form-label { font-weight: 500; color: var(--sh-text); }
+
+/* =============================================================================
+   TABLES
+   ============================================================================= */
+.table {
+    color: var(--sh-text);
+    border-color: var(--sh-border);
+    margin-bottom: 0 !important;
+}
+.table-dark { --bs-table-bg: #212529; }
+.table th { font-weight: 600; letter-spacing: .3px; }
+.table-hover tbody tr:hover { background: var(--sh-primary-light); }
+
+/* DataTables overrides */
+.dt-buttons .btn { margin-right: 4px !important; }
+.dt-buttons .btn i { margin-right: 4px !important; }
+
+/* ── Coloured DataTable export buttons ─────────────────────────────────── */
+.btn-dt-primary  { background: var(--sh-primary)  !important; color: #fff !important; border-radius: var(--sh-radius) !important; }
+.btn-dt-success  { background: #198754 !important; color: #fff !important; border-radius: var(--sh-radius) !important; }
+.btn-dt-info     { background: #0dcaf0 !important; color: #000 !important; border-radius: var(--sh-radius) !important; }
+.btn-dt-danger   { background: #dc3545 !important; color: #fff !important; border-radius: var(--sh-radius) !important; }
+.btn-dt-warning  { background: #ffc107 !important; color: #000 !important; border-radius: var(--sh-radius) !important; }
+
+/* =============================================================================
+   BADGES & PILLS
+   ============================================================================= */
+.badge {
+    font-size: .72rem;
+    border-radius: var(--sh-radius-pill);
+    padding: 3px 9px;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+/* =============================================================================
+   ALERTS
+   ============================================================================= */
+.alert {
+    border-radius: var(--sh-radius);
+    border: none;
+    box-shadow: var(--sh-shadow);
+    padding: 14px 18px;
+}
+
+/* =============================================================================
+   INFO BOXES (AdminLTE)
+   ============================================================================= */
+.info-box {
+    border-radius: var(--sh-radius-lg);
+    box-shadow: var(--sh-shadow);
+    background: var(--sh-surface);
+    border: 1px solid var(--sh-border);
+    transition: box-shadow var(--sh-transition);
+}
+.info-box:hover { box-shadow: var(--sh-shadow-lg); }
+.info-box-icon  { border-radius: var(--sh-radius-lg) 0 0 var(--sh-radius-lg); }
+
+/* =============================================================================
+   SETTINGS PANEL (BEM: sh-settings-panel)
+   ============================================================================= */
+.sh-settings-panel {
+    width: 320px;
+    border-left: none;
+    box-shadow: -8px 0 40px rgba(0,0,0,.18);
+}
+
+.sh-settings-panel__header {
+    background: var(--sh-grad-primary);
+    color: #fff;
+    padding: 18px 20px;
+}
+
+.sh-settings-panel__section {
+    padding: 20px 20px 0;
+}
+
+.sh-settings-panel__section + .sh-settings-panel__section {
+    border-top: 1px solid var(--sh-border);
+    margin-top: 16px;
+    padding-top: 20px;
+}
+
+.sh-settings-panel__section--muted {
+    background: var(--sh-surface-alt);
+    border-radius: var(--sh-radius);
+    padding: 12px 16px;
+    margin: 20px;
+    color: var(--sh-text-muted);
+}
+
+.sh-settings-panel__section-title {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    font-weight: 700;
+    color: var(--sh-text-muted);
+    margin-bottom: 14px;
+}
+
+.sh-settings-panel__toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+/* ── Theme Swatches Grid ────────────────────────────────────────────────── */
+.sh-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.sh-theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border-radius: var(--sh-radius);
+    border: 2px solid transparent;
+    background: var(--sh-surface-alt);
+    cursor: pointer;
+    transition: border-color var(--sh-transition), box-shadow var(--sh-transition);
+    position: relative;
+}
+
+.sh-theme-swatch:hover {
+    border-color: var(--sh-primary);
+    box-shadow: var(--sh-shadow);
+}
+
+.sh-theme-swatch.active {
+    border-color: var(--sh-primary);
+    box-shadow: 0 0 0 3px var(--sh-primary-light);
+}
+
+.sh-theme-swatch__preview {
+    width: 48px;
+    height: 32px;
+    border-radius: 6px;
+    display: block;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+
+.sh-theme-swatch__label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--sh-text-muted);
+}
+
+.sh-theme-swatch__check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    color: var(--sh-primary);
+    font-size: .85rem;
+    display: none;
+}
+.sh-theme-swatch.active .sh-theme-swatch__check { display: block; }
+
+/* Swatch colour fills */
+.sh-theme-swatch--light       .sh-theme-swatch__preview { background: linear-gradient(135deg,#f8f9fa 0%,#dee2e6 100%); }
+.sh-theme-swatch--dark        .sh-theme-swatch__preview { background: linear-gradient(135deg,#1e293b 0%,#0f172a 100%); }
+.sh-theme-swatch--theme-blue  .sh-theme-swatch__preview { background: linear-gradient(135deg,#2563eb 0%,#60a5fa 100%); }
+.sh-theme-swatch--theme-green .sh-theme-swatch__preview { background: linear-gradient(135deg,#16a34a 0%,#4ade80 100%); }
+.sh-theme-swatch--theme-purple.sh-theme-swatch__preview { background: linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%); }
+.sh-theme-swatch--theme-orange.sh-theme-swatch__preview { background: linear-gradient(135deg,#ea580c 0%,#fbbf24 100%); }
+.sh-theme-swatch--theme-purple .sh-theme-swatch__preview { background: linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%); }
+.sh-theme-swatch--theme-orange .sh-theme-swatch__preview { background: linear-gradient(135deg,#ea580c 0%,#fbbf24 100%); }
+
+/* =============================================================================
+   FOOTER
+   ============================================================================= */
+.app-footer {
+    background: var(--sh-surface);
+    border-top: 1px solid var(--sh-border);
+    color: var(--sh-text-muted);
+    font-size: .83rem;
+    padding: 12px 20px;
+}
+
+/* =============================================================================
+   BREADCRUMB
+   ============================================================================= */
+.breadcrumb-item a { color: var(--sh-primary); }
+.breadcrumb-item.active { color: var(--sh-text-muted); }
+
+/* =============================================================================
+   MODAL
+   ============================================================================= */
+.modal-content {
+    border-radius: var(--sh-radius-lg);
+    border: none;
+    box-shadow: var(--sh-shadow-lg);
+    background: var(--sh-surface);
+}
+.modal-header { border-bottom: 1px solid var(--sh-border); }
+.modal-footer { border-top:    1px solid var(--sh-border); }
+
+/* =============================================================================
+   UTILITIES
+   ============================================================================= */
+.text-gradient {
+    background: var(--sh-grad-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary { background: var(--sh-grad-primary) !important; }
+.bg-gradient-success { background: var(--sh-grad-success) !important; }
+.bg-gradient-danger  { background: var(--sh-grad-danger)  !important; }
+.bg-gradient-warning { background: var(--sh-grad-warning) !important; }
+.bg-gradient-info    { background: var(--sh-grad-info)    !important; }
+.bg-gradient-purple  { background: var(--sh-grad-purple)  !important; }
+
+.sh-card-shadow { box-shadow: var(--sh-shadow-lg); }
+.sh-border-radius { border-radius: var(--sh-radius); }
+.sh-border-radius-lg { border-radius: var(--sh-radius-lg); }
+
+/* Scrollbar (custom, lightweight) */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--sh-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sh-text-muted); }
+
+/* =============================================================================
+   RESPONSIVE HELPERS
+   ============================================================================= */
+@media (max-width: 576px) {
+    .sh-settings-panel { width: 100vw; }
+    .sh-theme-grid { grid-template-columns: repeat(2, 1fr); }
+    h3.mb-0 { font-size: 1.1rem; }
+}
+
+/* =============================================================================
+   LOGOUT BUTTON (preserve existing behaviour)
+   ============================================================================= */
+#logout {
+    display: flex;
+    align-items: center;
+    padding: .5rem 1rem;
+    transition: color var(--sh-transition);
+}
+#logout:hover { color: var(--sh-primary); }
+.fa-sign-out-alt { color: #333; margin-right: .5rem; }
+
+/* =============================================================================
+   DASHBOARD STAT CARDS
+   ============================================================================= */
+.sh-stat-card {
+    border-radius: var(--sh-radius-lg) !important;
+    box-shadow: var(--sh-shadow);
+    background: var(--sh-surface);
+    transition: transform var(--sh-transition), box-shadow var(--sh-transition);
+}
+.sh-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sh-shadow-lg);
+}
+
+.sh-stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--sh-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+
+.sh-stat-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--sh-text);
+}
+.sh-stat-label {
+    font-size: .78rem;
+    color: var(--sh-text-muted);
+    font-weight: 500;
+    letter-spacing: .2px;
+}
+
+/* =============================================================================
+   CONSISTENT PAGE HEADER
+   ============================================================================= */
+.app-content-header {
+    padding: 18px 0 12px;
+    border-bottom: 1px solid var(--sh-border);
+    margin-bottom: 4px;
+    background: var(--sh-surface);
+}
+
+.app-content-header h3 {
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: var(--sh-text);
+}
+
+/* =============================================================================
+   CONSISTENT TABLE STYLING (applies to ALL tables)
+   ============================================================================= */
+.table thead th {
+    background: var(--sh-surface-alt);
+    border-bottom: 2px solid var(--sh-border);
+    font-size: .82rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--sh-text-muted);
+    padding: 10px 14px;
+    white-space: nowrap;
+}
+.table tbody td {
+    padding: 10px 14px;
+    vertical-align: middle;
+    font-size: .88rem;
+    border-bottom: 1px solid var(--sh-border);
+}
+.table-hover tbody tr:hover {
+    background: var(--sh-primary-light) !important;
+}
+
+/* DataTables search & length */
+.dataTables_filter input,
+.dataTables_length select {
+    border: 1px solid var(--sh-border) !important;
+    border-radius: var(--sh-radius) !important;
+    background: var(--sh-surface) !important;
+    color: var(--sh-text) !important;
+    padding: 5px 10px !important;
+}
+.dataTables_filter input:focus,
+.dataTables_length select:focus {
+    border-color: var(--sh-primary) !important;
+    box-shadow: 0 0 0 0.15rem var(--sh-primary-light) !important;
+}
+.dataTables_info, .dataTables_paginate {
+    padding: 12px 14px !important;
+    font-size: .85rem;
+    color: var(--sh-text-muted);
+}
+.dataTables_paginate .paginate_button.current {
+    background: var(--sh-primary) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--sh-radius) !important;
+}
+.dataTables_paginate .paginate_button:hover {
+    background: var(--sh-primary-light) !important;
+    color: var(--sh-primary) !important;
+    border: none !important;
+}
+
+/* =============================================================================
+   CONSISTENT FORM STYLING (uniform look across all pages)
+   ============================================================================= */
+.form-control,
+.form-select {
+    border-radius: var(--sh-radius) !important;
+    border: 1px solid var(--sh-border) !important;
+    background: var(--sh-surface) !important;
+    color: var(--sh-text) !important;
+    padding: 8px 12px;
+    font-size: .9rem;
+    transition: border-color var(--sh-transition), box-shadow var(--sh-transition);
+}
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--sh-primary) !important;
+    box-shadow: 0 0 0 0.15rem var(--sh-primary-light) !important;
+    background: var(--sh-surface) !important;
+    color: var(--sh-text) !important;
+}
+.form-control-sm,
+.form-select-sm {
+    padding: 5px 10px;
+    font-size: .82rem;
+}
+.form-label {
+    font-weight: 600;
+    color: var(--sh-text);
+    font-size: .85rem;
+    margin-bottom: 4px;
+}
+.form-check-input:checked {
+    background-color: var(--sh-primary);
+    border-color: var(--sh-primary);
+}
+.form-switch .form-check-input:checked {
+    background-color: var(--sh-primary);
+}
+
+/* =============================================================================
+   SELECT2 DARK MODE SUPPORT
+   ============================================================================= */
+.select2-container--default .select2-selection--single {
+    background-color: var(--sh-surface, #fff) !important;
+    border: 1px solid var(--sh-border) !important;
+    color: var(--sh-text) !important;
+    border-radius: var(--sh-radius) !important;
+    height: 34px;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--sh-text) !important;
+    line-height: 32px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 32px;
+}
+.select2-container--default .select2-selection--multiple {
+    background-color: var(--sh-surface, #fff) !important;
+    border: 1px solid var(--sh-border) !important;
+    border-radius: var(--sh-radius) !important;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--sh-primary) !important;
+    border-color: var(--sh-primary) !important;
+    color: #fff !important;
+    border-radius: 4px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: rgba(255,255,255,.7) !important;
+}
+.select2-dropdown {
+    background-color: var(--sh-surface, #fff) !important;
+    border-color: var(--sh-border) !important;
+    color: var(--sh-text) !important;
+}
+.select2-search--dropdown .select2-search__field {
+    background: var(--sh-surface, #fff) !important;
+    color: var(--sh-text) !important;
+    border-color: var(--sh-border) !important;
+}
+.select2-container--default .select2-results__option {
+    color: var(--sh-text) !important;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--sh-primary) !important;
+    color: #fff !important;
+}
+.select2-container--default .select2-results__option[aria-selected="true"] {
+    background-color: var(--sh-surface-alt, #f0f4fa) !important;
+}
+
+/* =============================================================================
+   CONSISTENT CARD HEADER STYLE
+   ============================================================================= */
+.card-header {
+    background: var(--sh-surface) !important;
+    border-bottom: 1px solid var(--sh-border) !important;
+    padding: 14px 20px !important;
+    font-weight: 600;
+}
+.card-header h2,
+.card-header h4,
+.card-header h5 {
+    font-weight: 700;
+    color: var(--sh-text);
+}
+
+/* =============================================================================
+   APEXCHARTS THEME INTEGRATION
+   ============================================================================= */
+.apexcharts-canvas {
+    background: transparent !important;
+}
+.apexcharts-tooltip {
+    background: var(--sh-surface) !important;
+    border: 1px solid var(--sh-border) !important;
+    color: var(--sh-text) !important;
+    box-shadow: var(--sh-shadow-lg) !important;
+    border-radius: var(--sh-radius) !important;
+}
+.apexcharts-tooltip-title {
+    background: var(--sh-surface-alt) !important;
+    border-bottom: 1px solid var(--sh-border) !important;
+}
+.apexcharts-legend-text {
+    color: var(--sh-text-muted) !important;
+}
+
+/* =============================================================================
+   FRAUD ROW HIGHLIGHT
+   ============================================================================= */
+.fraud-row td {
+    background-color: rgba(255, 193, 7, 0.12) !important;
+    border-left: 3px solid #ffc107;
+}
+
+/* =============================================================================
+   RESPONSIVE — dashboard filters wrap nicely on mobile
+   ============================================================================= */
+@media (max-width: 768px) {
+    .sh-stat-icon { width: 42px; height: 42px; font-size: 1rem; }
+    .sh-stat-value { font-size: 1.15rem; }
+}

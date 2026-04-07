@@ -1,135 +1,164 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Service Hub</title>
+    <title>@ViewData["Title"] - Service Group</title>
 
-    <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <!-- Bootstrap Icons (local) -->
+    <link rel="stylesheet" href="/cust_theme_comp/css/bootstrap-icons.min.css" />
 
-    <!-- Other CSS files -->
-    <link href="/cust_theme_comp/css/overlayscrollbars.min.css" rel="stylesheet" />
-     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css"> 
-    <link rel="stylesheet" href="/cust_theme_comp/css/adminlte.css">
-    <link href="/cust_theme_comp/css/apexcharts.css" rel="stylesheet" />
-
-    <!-- DataTables CSS -->
-    <link href="/cust_theme_comp/css/jquery.datatables.css" rel="stylesheet" />
-    <link href="/cust_theme_comp/css/buttons.datatables.min.css" rel="stylesheet" />
-
-</head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
-    <div class="app-wrapper">
-        <partial name="_TopNavbar.cshtml" />
-        <partial name="_Sidebar.cshtml" />
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-        <partial name="_Footer.cshtml" />
-    </div>
-
-    <!-- jQuery -->
-    <script src="/cust_theme_comp/js/jquery-3.7.0.min.js"></script>
+    <!-- Font Awesome (local) -->
+    <link rel="stylesheet" href="/cust_theme_comp/css/all.min.css" />
 
     <!-- OverlayScrollbars -->
-    <script src="/cust_theme_comp/js/overlayscrollbars.browser.es6.min.js"></script>
-
-    <!-- Bootstrap -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="/cust_theme_comp/css/overlayscrollbars.min.css" />
 
     <!-- AdminLTE -->
-    <script src="/cust_theme_comp/js/adminlte.js"></script>
+    <link rel="stylesheet" href="/cust_theme_comp/css/adminlte.css" />
 
     <!-- ApexCharts -->
-    <script src="/cust_theme_comp/js/apexcharts.min.js"></script>
+    <link rel="stylesheet" href="/cust_theme_comp/css/apexcharts.css" />
 
     <!-- DataTables -->
-    <script src="/cust_theme_comp/js/jquery.datatables.min.js"></script>
-    <script src="/cust_theme_comp/js/datatables.buttons.min.js"></script>
-    <script src="/cust_theme_comp/js/buttons.html5.min.js"></script>
-    <script src="/cust_theme_comp/js/buttons.print.min.js"></script>
-    <script src="/cust_theme_comp/js/jszip.min.js"></script>
-    <script src="/cust_theme_comp/js/pdfmake.min.js"></script>
-    <script src="/cust_theme_comp/js/vfs_fonts.js"></script>
+    <link rel="stylesheet" href="/cust_theme_comp/css/jquery.datatables.css" />
+    <link rel="stylesheet" href="/cust_theme_comp/css/buttons.dataTables.min.css" />
 
-    
-@* Color Mode Toggler *@
-    <script>       
-        (() => {
-            "use strict";
-            const storedTheme = localStorage.getItem("theme");
-            const getPreferredTheme = () => {
-                if (storedTheme) {
-                    return storedTheme;
-                }
-                return window.matchMedia("(prefers-color-scheme: dark)").matches ?
-                    "dark" :
-                    "light";
-            };
-            const setTheme = function (theme) {
-                if (
-                    theme === "auto" &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches
-                ) {
-                    document.documentElement.setAttribute("data-bs-theme", "dark");
-                } else {
-                    document.documentElement.setAttribute("data-bs-theme", theme);
-                }
-            };
-            setTheme(getPreferredTheme());
-            const showActiveTheme = (theme, focus = false) => {
-                const themeSwitcher = document.querySelector("#bd-theme");
-                if (!themeSwitcher) {
-                    return;
-                }
-                const themeSwitcherText = document.querySelector("#bd-theme-text");
-                const activeThemeIcon = document.querySelector(
-                    ".theme-icon-active i"
-                );
-                const btnToActive = document.querySelector(
-                    `[data-bs-theme-value="${theme}"]`
-                );
-                const svgOfActiveBtn = btnToActive
-                    .querySelector("i")
-                    .getAttribute("class");
-                for (const element of document.querySelectorAll(
-                    "[data-bs-theme-value]"
-                )) {
-                    element.classList.remove("active");
-                    element.setAttribute("aria-pressed", "false");
-                }
-                btnToActive.classList.add("active");
-                btnToActive.setAttribute("aria-pressed", "true");
-                activeThemeIcon.setAttribute("class", svgOfActiveBtn);
-                const themeSwitcherLabel = `${themeSwitcherText.textContent} (${btnToActive.dataset.bsThemeValue})`;
-                themeSwitcher.setAttribute("aria-label", themeSwitcherLabel);
-                if (focus) {
-                    themeSwitcher.focus();
-                }
-            };
-            window
-                .matchMedia("(prefers-color-scheme: dark)")
-                .addEventListener("change", () => {
-                    if (storedTheme !== "light" || storedTheme !== "dark") {
-                        setTheme(getPreferredTheme());
-                    }
-                });
-            window.addEventListener("DOMContentLoaded", () => {
-                showActiveTheme(getPreferredTheme());
-                for (const toggle of document.querySelectorAll(
-                    "[data-bs-theme-value]"
-                )) {
-                    toggle.addEventListener("click", () => {
-                        const theme = toggle.getAttribute("data-bs-theme-value");
-                        localStorage.setItem("theme", theme);
-                        setTheme(theme);
-                        showActiveTheme(theme, true);
-                    });
-                }
-            });
+    <!-- Global App Stylesheet (design tokens, themes, gradients) -->
+    <link rel="stylesheet" href="/css/app.css" />
+
+    <!--
+        jQuery MUST load in <head> so the sidebar partial script
+        (which is rendered inside <body> before the page-bottom scripts)
+        can use $ immediately on DOMContentLoaded.
+    -->
+    <script src="/cust_theme_comp/js/jquery-3.7.0.min.js"></script>
+
+    <!-- Inline critical: read DB theme before first paint to avoid flash -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('sh_theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme',
+                (t === 'dark') ? 'dark' : 'light');
+            document.documentElement.className = 'theme-' + t;
         })();
     </script>
-    @await RenderSectionAsync("Scripts", required: false)
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary" id="appBody">
+<div class="app-wrapper" id="appWrapper">
+
+    <partial name="_TopNavbar.cshtml" />
+    <partial name="_Sidebar.cshtml" />
+
+    <main role="main" class="app-main pb-3">
+        @RenderBody()
+    </main>
+
+    <partial name="_Footer.cshtml" />
+</div>
+
+<!-- Settings Panel (off-canvas slide-in) -->
+<partial name="_SettingsPanel.cshtml" />
+
+<!-- ── JavaScript (all LOCAL) ────────────────────────────────────── -->
+<!-- jQuery already loaded in <head> above — do NOT load it again -->
+
+<!-- OverlayScrollbars -->
+<script src="/cust_theme_comp/js/overlayscrollbars.browser.es6.min.js"></script>
+
+<!-- Bootstrap bundle -->
+<script src="/cust_theme_comp/js/bootstrap.bundle.min.js"></script>
+
+<!-- AdminLTE -->
+<script src="/cust_theme_comp/js/adminlte.js"></script>
+
+<!-- ApexCharts -->
+<script src="/cust_theme_comp/js/apexcharts.min.js"></script>
+
+<!-- DataTables -->
+<script src="/cust_theme_comp/js/jquery.datatables.min.js"></script>
+<script src="/cust_theme_comp/js/dataTables.buttons.min.js"></script>
+<script src="/cust_theme_comp/js/buttons.html5.min.js"></script>
+<script src="/cust_theme_comp/js/buttons.print.min.js"></script>
+<script src="/cust_theme_comp/js/jszip.min.js"></script>
+<script src="/cust_theme_comp/js/pdfmake.min.js"></script>
+<script src="/cust_theme_comp/js/vfs_fonts.js"></script>
+
+<!-- ── Theme + Settings Panel JS ──────────────────────────────────── -->
+<script>
+(function () {
+    "use strict";
+
+    var COLOR_THEMES = ['light','dark','theme-blue','theme-green','theme-purple','theme-orange'];
+
+    function applyTheme(t) {
+        if (!COLOR_THEMES.includes(t)) t = 'light';
+        document.documentElement.setAttribute('data-bs-theme', t === 'dark' ? 'dark' : 'light');
+        document.documentElement.className = 'theme-' + t;
+        localStorage.setItem('sh_theme', t);
+        document.querySelectorAll('[data-theme-value]').forEach(function (el) {
+            el.classList.toggle('active', el.getAttribute('data-theme-value') === t);
+        });
+    }
+
+    function applySidebar(collapsed) {
+        var body = document.getElementById('appBody');
+        if (!body) return;
+        body.classList.toggle('sidebar-collapse', collapsed);
+        localStorage.setItem('sh_sidebar', collapsed ? '1' : '0');
+        var tog = document.getElementById('sidebarToggleCheck');
+        if (tog) tog.checked = collapsed;
+    }
+
+    function persistToServer(theme, sidebarCollapsed) {
+        fetch('/UserSettings/SaveSetting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme: theme, sidebarCollapsed: sidebarCollapsed })
+        }).catch(function () {});
+    }
+
+    window.addEventListener('DOMContentLoaded', function () {
+
+        var savedTheme   = localStorage.getItem('sh_theme')   || 'light';
+        var savedSidebar = localStorage.getItem('sh_sidebar') === '1';
+
+        applyTheme(savedTheme);
+        applySidebar(savedSidebar);
+
+        fetch('/UserSettings/GetSetting')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.theme && data.theme !== savedTheme)
+                    applyTheme(data.theme);
+                if (data.sidebarCollapsed !== savedSidebar)
+                    applySidebar(data.sidebarCollapsed);
+            })
+            .catch(function () {});
+
+        document.querySelectorAll('[data-theme-value]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var t  = this.getAttribute('data-theme-value');
+                var sc = localStorage.getItem('sh_sidebar') === '1';
+                applyTheme(t);
+                persistToServer(t, sc);
+            });
+        });
+
+        var sidebarToggle = document.getElementById('sidebarToggleCheck');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('change', function () {
+                var theme = localStorage.getItem('sh_theme') || 'light';
+                applySidebar(this.checked);
+                persistToServer(theme, this.checked);
+            });
+        }
+    });
+
+    window.ServiceHub = { applyTheme: applyTheme, applySidebar: applySidebar };
+})();
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
