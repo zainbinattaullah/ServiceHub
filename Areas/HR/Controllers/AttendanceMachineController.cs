@@ -223,6 +223,104 @@ namespace ServiceHub.Areas.HR.Controllers
             return _dbcontext.AttendenceMachines.Any(e => e.Id == id);
         }
 
+
+        // ---------------------------------------------------------------
+        //  BULK FORMAT MACHINES  (Admin only)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> FormatMachines([FromBody] BulkFormatRequest request)
+        {
+            if (request == null || request.Machines == null || !request.Machines.Any())
+                return BadRequest(new { success = false, message = "No machines provided." });
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var userName = User.Identity?.Name ?? "";
+
+            var results = new List<object>();
+
+            foreach (var item in request.Machines)
+            {
+                if (string.IsNullOrWhiteSpace(item.MachineIP))
+                    continue;
+
+                var machine = await _dbcontext.AttendenceMachines
+                    .FirstOrDefaultAsync(m => m.IpAddress == item.MachineIP);
+
+                string machineName = machine?.Name ?? item.MachineIP;
+                bool success = false;
+                string message = "";
+
+                try
+                {
+                    var client = _httpClientFactory.CreateClient("EmployeeApi");
+                    var payload = new { MachineIP = item.MachineIP, UserId = userId, UserName = userName };
+
+                    HttpResponseMessage response;
+                    string responseBody;
+
+                    try
+                    {
+                        response = await client.PostAsJsonAsync("api/format", payload);
+                        responseBody = await response.Content.ReadAsStringAsync();
+                        success = response.IsSuccessStatusCode;
+                        message = responseBody;
+
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(responseBody ?? "{}");
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("message", out var msg)) message = msg.GetString() ?? message;
+                            if (root.TryGetProperty("success", out var succ)) success = succ.GetBoolean();
+                        }
+                        catch { /* keep raw */ }
+                    }
+                    catch (Exception httpEx)
+                    {
+                        _logger.LogError(httpEx, "HTTP request failed for BulkFormatMachine {IP}", item.MachineIP);
+                        success = false;
+                        message = $"Windows service unreachable: {httpEx.Message}";
+                    }
+
+                    // Audit log
+                    if (machine != null)
+                    {
+                        _dbcontext.MachineFormatLogs.Add(new MachineFormatLog
+                        {
+                            MachineId = machine.Id,
+                            MachineIP = item.MachineIP,
+                            MachineName = machineName,
+                            Status = success ? "Success" : "Failed",
+                            ErrorMessage = success ? null : message,
+                            RequestedByUserId = userId,
+                            RequestedByUserName = userName,
+                            RequestedAt = DateTime.Now,
+                            ExecutedAt = DateTime.Now
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "BulkFormatMachine failed for {IP}", item.MachineIP);
+                    success = false;
+                    message = "Internal error.";
+                }
+
+                results.Add(new { machineIP = item.MachineIP, machineName, success, message });
+            }
+
+            await _dbcontext.SaveChangesAsync();
+
+            return Json(new { results });
+        }
+
+        public class BulkFormatRequest
+        {
+            public List<FormatMachineApiRequest> Machines { get; set; } = new();
+        }
+
+
+
         // ---------------------------------------------------------------
         //  FORMAT MACHINE  (Admin only)
         // ---------------------------------------------------------------
@@ -351,6 +449,7 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             public string MachineIP { get; set; }
         }
+       
         [HttpGet]
         public async Task<IActionResult> ExportAttendanceMachines(string search = null, string sortColumn = null, string sortDirection = null)
         {
@@ -414,12 +513,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 IsFetchAll = m.IsFetchAll ? "All" : "Latest"
             }).ToListAsync();
 
-
-            //const int MAX_RECORDS = 100_000;
-            //if (records.Count > MAX_RECORDS)
-            //{
-            //    return BadRequest($"Too many records ({records.Count}). Please refine your filters.");
-            //}
 
             // Generate Excel file
             using (var workbook = new XLWorkbook())

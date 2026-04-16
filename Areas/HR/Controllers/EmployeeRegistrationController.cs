@@ -5,6 +5,7 @@ using ServiceHub.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Linq;
+using ServiceHub.Areas.HR.Models;
 using System.Text.Json;
 
 namespace ServiceHub.Areas.HR.Controllers
@@ -45,9 +46,9 @@ namespace ServiceHub.Areas.HR.Controllers
             var configured = _configuration.GetSection("PrivilegeOptions").Get<string[]>();
             if (configured != null && configured.Length > 0)
             {
-                return configured.Select(p => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = p, Text = p });
+                return configured.Select(p => new SelectListItem { Value = p, Text = p });
             }
-            return Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+            return Enumerable.Empty<SelectListItem>();
         }
 
         [HttpGet]
@@ -63,6 +64,14 @@ namespace ServiceHub.Areas.HR.Controllers
             ViewBag.IsTransferWindowOpen = _timeWindowService.IsTransferWindowOpen();
             ViewBag.TransferWindowMessage = _timeWindowService.GetTransferWindowMessage();
             ViewBag.NextWindowChange = _timeWindowService.GetNextWindowChange()?.TotalMilliseconds;
+
+            var departments = await _dbContext.Departments.Where(d => d.IsActive).OrderBy(d => d.Name)
+                                .Select(d => new SelectListItem
+                                {
+                                    Value = d.Id.ToString(),
+                                    Text = $"{d.Code} — {d.Name}"
+                                }).ToListAsync();
+            model.Departments = departments;
             return View(model);
         }
 
@@ -84,6 +93,12 @@ namespace ServiceHub.Areas.HR.Controllers
             {
                 model.MachineIPs = await GetMachineSelectListItems().ToListAsync();
                 model.PrivilegeOptions = GetPrivilegeOptions();
+                model.Departments = await _dbContext.Departments.Where(d => d.IsActive).OrderBy(d => d.Name)
+                                    .Select(d => new SelectListItem
+                                    {
+                                        Value = d.Id.ToString(),
+                                        Text = $"{d.Code} — {d.Name}"
+                                    }).ToListAsync();
                 return View(model);
             }
 
@@ -111,6 +126,7 @@ namespace ServiceHub.Areas.HR.Controllers
                     ViewBag.Alert = $"Enrollment service is unavailable at {baseAddr}. Please ensure the legacy service is running and reachable.";
                     model.MachineIPs = await GetMachineSelectListItems().ToListAsync();
                     model.PrivilegeOptions = GetPrivilegeOptions();
+
                     return View(model);
                 }
 
@@ -150,7 +166,7 @@ namespace ServiceHub.Areas.HR.Controllers
                 }
 
                 // Insert enrollment record regardless of API success
-                var enrollment = new ServiceHub.Areas.HR.Models.EmployeeEnrollment
+                var enrollment = new EmployeeEnrollment
                 {
                     EmployeeCode = model.EmployeeCode,
                     EmployeeName = model.EmployeeName,
@@ -160,7 +176,8 @@ namespace ServiceHub.Areas.HR.Controllers
                     CreatedAt = DateTime.UtcNow,
                     IsSynced = success,
                     SyncMessage = message,
-                    SyncedAt = success ? DateTime.UtcNow : (DateTime?)null
+                    SyncedAt = success ? DateTime.UtcNow : (DateTime?)null,
+                    DepartmentId =model.DepartmentId
                 };
                 var machine = await _dbContext.AttendenceMachines.FirstOrDefaultAsync(m => m.IpAddress == model.MachineIP);
                 if (machine != null) enrollment.MachineId = machine.Id;
@@ -193,6 +210,12 @@ namespace ServiceHub.Areas.HR.Controllers
                 // repopulate lists and return view
                 model.MachineIPs = await GetMachineSelectListItems().ToListAsync();
                 model.PrivilegeOptions = GetPrivilegeOptions();
+                model.Departments = await _dbContext.Departments.Where(d => d.IsActive).OrderBy(d => d.Name)
+                                    .Select(d => new SelectListItem
+                                    {
+                                        Value = d.Id.ToString(),
+                                        Text = $"{d.Code} — {d.Name}"
+                                    }).ToListAsync();
                 return View(model);
             }
             catch (Exception ex)

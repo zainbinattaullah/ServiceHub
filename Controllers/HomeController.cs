@@ -88,32 +88,28 @@ namespace ServiceHub.Controllers
             else if (status == "inactive")
                 filteredMachines = filteredMachines.Where(m => !m.IsActive);
 
-            //var filteredIPs = !string.IsNullOrEmpty(machineIP)
-            //    ? new List<string> { machineIP }
-            //    : filteredMachines.Select(m => m.IpAddress).ToList();
             var filteredIPs = !string.IsNullOrEmpty(machineIP) ? new string[] { machineIP } : filteredMachines.Select(m => m.IpAddress).ToArray();
 
+
+            // ── Date range for month/year filter ────────────────────────────
+            var startDate = new DateTime(year, month, 1);
+            var endDate = startDate.AddMonths(1).AddDays(-1);
+
             // ── Connection logs (today) ─────────────────────────────────
-            var connLogs = _db.AttendenceMachineConnectionLogs
-                .Where(l => l.Connection_StartTime.Date == today);
+            var connLogsQuery = _db.AttendenceMachineConnectionLogs
+                                .AsNoTracking()
+                                .Where(l => l.Connection_StartTime.Date == today && l.Machine_IP != null && filteredIPs.Contains(l.Machine_IP));
 
-            if (filteredIPs.Any())
-                connLogs = connLogs.Where(l => l.Machine_IP != null && filteredIPs.Contains(l.Machine_IP));
-
-            int successCount = connLogs.Count(l => l.Status == "Success");
-            int failCount    = connLogs.Count(l => l.Status == "Failed");
+            int successCount = connLogsQuery.Count(l => l.Status == "Success");
+            int failCount = connLogsQuery.Count(l => l.Status == "Failed");
 
             // ── Records fetched (selected month/year) ────────────────────
-            var startDate = new DateTime(year, month, 1);
-            var endDate   = startDate.AddMonths(1).AddDays(-1);
 
-            var swapQuery = _db.HR_Swap_Record
-                .Where(r => r.Creation_Date.HasValue &&
-                            r.Creation_Date.Value >= startDate &&
-                            r.Creation_Date.Value <= endDate);
-
-            if (filteredIPs.Any())
-                swapQuery = swapQuery.Where(r => r.Machine_IP != null && filteredIPs.Contains(r.Machine_IP));
+            var swapQuery = _db.HR_Swap_Record.AsNoTracking().Where(r => r.Swap_Time.HasValue &&
+                   r.Swap_Time.Value >= startDate &&
+                   r.Swap_Time.Value <= endDate.AddDays(1).AddTicks(-1) &&
+                   r.Machine_IP != null &&
+                   filteredIPs.Contains(r.Machine_IP));
 
             int totalFetched = swapQuery.Count();
 
@@ -131,15 +127,12 @@ namespace ServiceHub.Controllers
                 .Select(b => b.EmpNo).Distinct().Count();
 
             // ── Day-wise chart (selected month) ──────────────────────────
-            var recordsByDate = swapQuery
-                .GroupBy(r => r.Creation_Date!.Value.Date)
-                .Select(g => new { Date = g.Key, Count = g.Count() })
-                .ToList();
+            var recordsByDate = swapQuery.GroupBy(r => r.Swap_Time!.Value.Date).Select(g => new { Date = g.Key, Count = g.Count() }).ToList();
 
             var lookup = recordsByDate.ToDictionary(r => r.Date, r => r.Count);
 
             var labels = new List<string>();
-            var data   = new List<int>();
+            var data = new List<int>();
             for (var d = startDate; d <= endDate; d = d.AddDays(1))
             {
                 labels.Add(d.ToString("dd MMM"));
@@ -149,51 +142,38 @@ namespace ServiceHub.Controllers
             // ── Per-machine breakdown (donut chart) ──────────────────────
             var machDict = allMachines.GroupBy(m => m.IpAddress ?? "").ToDictionary(g => g.Key, g => g.First().Name ?? "");
             var machBreak = swapQuery
-                .Where(r => r.Machine_IP != null)
-                .GroupBy(r => r.Machine_IP!)
-                .Select(g => new { IP = g.Key, Count = g.Count() })
-                .OrderByDescending(g => g.Count)
-                .Take(10)
-                .ToList();
+                            .GroupBy(r => r.Machine_IP!)
+                            .Select(g => new { IP = g.Key, Count = g.Count() })
+                            .OrderByDescending(g => g.Count)
+                            .Take(10)
+                            .ToList();
 
             var mNames  = machBreak.Select(x => machDict.TryGetValue(x.IP, out var n) ? n : x.IP).ToList();
             var mCounts = machBreak.Select(x => x.Count).ToList();
 
-            // ── Recent activity (last 15 punches) ────────────────────────
-            //var recent = _db.HR_Swap_Record.AsNoTracking()
-            //    .Where(r => r.Swap_Time != null)
-            //    .OrderByDescending(r => r.Swap_Time)
-            //    .Take(15)
-            //    .ToList()
-            //    .Select(r =>
-            //    {
-            //        machDict.TryGetValue(r.Machine_IP ?? "", out var mName);
-            //        return new RecentActivityRow
-            //        {
-            //            EmpNo       = r.Emp_No ?? "",
-            //            EmpName     = r.Emp_Name ?? "",
-            //            SwapTime    = r.Swap_Time,
-            //            MachineName = mName ?? r.Machine_IP ?? "",
-            //            Direction   = r.Shift_In == true ? "In" : r.Shift_Out == true ? "Out" : "–"
-            //        };
-            //    }).ToList();
-            var recent = _db.HR_Swap_Record.AsNoTracking()
-                          .Where(r => r.Swap_Time != null)
-                          .OrderByDescending(r => r.PK_line_id)
-                          .Take(20)
-                          .ToList()
-                          .Select(r =>
-                          {
-                              machDict.TryGetValue(r.Machine_IP ?? "", out var mName);
-                              return new RecentActivityRow
-                              {
-                                  EmpNo = r.Emp_No ?? "",
-                                  EmpName = r.Emp_Name ?? "",
-                                  SwapTime = r.Swap_Time,
-                                  MachineName = mName ?? r.Machine_IP ?? "",
-                                  Direction = r.Shift_In == true ? "In" : r.Shift_Out == true ? "Out" : "–"
-                              };
-                          }).ToList();
+            // ── Recent activity (last 20 punches) ────────────────────────         
+            var recent = _db.HR_Swap_Record
+                         .AsNoTracking()
+                         .Where(r => r.Swap_Time.HasValue &&
+                                     r.Swap_Time.Value >= startDate &&
+                                     r.Swap_Time.Value <= endDate.AddDays(1).AddTicks(-1) &&
+                                     r.Machine_IP != null &&
+                                     filteredIPs.Contains(r.Machine_IP))
+                         .OrderByDescending(r => r.PK_line_id)
+                         .Take(20)
+                         .ToList()
+                         .Select(r =>
+                         {
+                             machDict.TryGetValue(r.Machine_IP ?? "", out var mName);
+                             return new RecentActivityRow
+                             {
+                                 EmpNo = r.Emp_No ?? "",
+                                 EmpName = r.Emp_Name ?? "",
+                                 SwapTime = r.Swap_Time,
+                                 MachineName = mName ?? r.Machine_IP ?? "",
+                                 Direction = r.Shift_In == true ? "In" : r.Shift_Out == true ? "Out" : "–"
+                             };
+                         }).ToList();
 
             return new DashboardViewModel
             {

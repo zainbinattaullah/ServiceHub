@@ -61,113 +61,147 @@ namespace ServiceHub.Areas.HR.Controllers
             int pageSize = length != null ? Convert.ToInt32(length) : 10;
             int skip = start != null ? Convert.ToInt32(start) : 0;
 
-            var query = _dbContext.EmployeeEnrollments.AsQueryable();
+            var query = _dbContext.EmployeeEnrollments
+                .GroupJoin(
+                    _dbContext.Departments,
+                    e => e.DepartmentId,
+                    d => d.Id,
+                    (e, depts) => new { Enrollment = e, Dept = depts.FirstOrDefault() }
+                )
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(searchValue))
             {
                 var sv = searchValue.ToLower();
-                query = query.Where(e => e.EmployeeCode.Contains(sv) || (e.EmployeeName ?? "").Contains(sv) || (e.MachineIP ?? "").Contains(sv) || (e.Privilege ?? "").Contains(sv));
+                query = query.Where(x =>
+                    x.Enrollment.EmployeeCode.Contains(sv) ||
+                    (x.Enrollment.EmployeeName ?? "").Contains(sv) ||
+                    (x.Enrollment.MachineIP ?? "").Contains(sv) ||
+                    (x.Enrollment.Privilege ?? "").Contains(sv) ||
+                    (x.Dept != null && (x.Dept.Code + " " + x.Dept.Name).ToLower().Contains(sv))
+                );
             }
 
-            // Apply sorting
             if (!string.IsNullOrEmpty(sortColumnIndex))
             {
                 switch (sortColumnIndex)
                 {
-                    case "0": query = sortDirection == "asc" ? query.OrderBy(e => e.Id) : query.OrderByDescending(e => e.Id); break;
-                    case "1": query = sortDirection == "asc" ? query.OrderBy(e => e.EmployeeCode) : query.OrderByDescending(e => e.EmployeeCode); break;
-                    case "2": query = sortDirection == "asc" ? query.OrderBy(e => e.EmployeeName) : query.OrderByDescending(e => e.EmployeeName); break;
-                    case "3": query = sortDirection == "asc" ? query.OrderBy(e => e.MachineIP) : query.OrderByDescending(e => e.MachineIP); break;
-                    case "4": query = sortDirection == "asc" ? query.OrderBy(e => e.Privilege) : query.OrderByDescending(e => e.Privilege); break;
-                    case "5": query = sortDirection == "asc" ? query.OrderBy(e => e.CreatedAt) : query.OrderByDescending(e => e.CreatedAt); break;
-                    case "6": query = sortDirection == "asc" ? query.OrderBy(e => e.IsSynced) : query.OrderByDescending(e => e.IsSynced); break;
-                    default: query = query.OrderByDescending(e => e.CreatedAt); break;
+                    case "0": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.Id) : query.OrderByDescending(x => x.Enrollment.Id); break;
+                    case "1": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.EmployeeCode) : query.OrderByDescending(x => x.Enrollment.EmployeeCode); break;
+                    case "2": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.EmployeeName) : query.OrderByDescending(x => x.Enrollment.EmployeeName); break;
+                    case "3": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.MachineIP) : query.OrderByDescending(x => x.Enrollment.MachineIP); break;
+                    case "4": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.Privilege) : query.OrderByDescending(x => x.Enrollment.Privilege); break;
+                    case "5": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.CreatedAt) : query.OrderByDescending(x => x.Enrollment.CreatedAt); break;
+                    case "6": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.IsSynced) : query.OrderByDescending(x => x.Enrollment.IsSynced); break;
+                    case "7": query = sortDirection == "asc" ? query.OrderBy(x => x.Dept != null ? x.Dept.Name : "") : query.OrderByDescending(x => x.Dept != null ? x.Dept.Name : ""); break;
+                    default: query = query.OrderByDescending(x => x.Enrollment.CreatedAt); break;
                 }
+            }
+            else
+            {
+                query = query.OrderByDescending(x => x.Enrollment.CreatedAt);
             }
 
             var totalRecords = await query.CountAsync();
 
-            var data = await query.Skip(skip).Take(pageSize).Select(e => new {
-                id = e.Id,
-                employeeCode = e.EmployeeCode,
-                employeeName = e.EmployeeName,
-                machineIP = e.MachineIP,
-                privilege = e.Privilege,
-                createdAt = e.CreatedAt,
-                isSynced = e.IsSynced,
-                syncMessage = e.SyncMessage
+            var data = await query.Skip(skip).Take(pageSize).Select(x => new {
+                id = x.Enrollment.Id,
+                employeeCode = x.Enrollment.EmployeeCode,
+                employeeName = x.Enrollment.EmployeeName,
+                machineIP = x.Enrollment.MachineIP,
+                privilege = x.Enrollment.Privilege,
+                createdAt = x.Enrollment.CreatedAt,
+                isSynced = x.Enrollment.IsSynced,
+                syncMessage = x.Enrollment.SyncMessage,
+                department = x.Dept != null ? x.Dept.Code + " — " + x.Dept.Name : ""
             }).ToListAsync();
 
-            return Json(new { draw = draw, recordsTotal = totalRecords, recordsFiltered = totalRecords, data = data });
+            return Json(new { draw, recordsTotal = totalRecords, recordsFiltered = totalRecords, data });
         }
 
         [HttpGet]
         public async Task<IActionResult> ExportEnrollments(string search = null, string sortColumn = null, string sortDirection = null)
         {
-            var query = _dbContext.EmployeeEnrollments.AsQueryable();
+            var query = _dbContext.EmployeeEnrollments
+                .GroupJoin(
+                    _dbContext.Departments,
+                    e => e.DepartmentId,
+                    d => d.Id,
+                    (e, depts) => new { Enrollment = e, Dept = depts.FirstOrDefault() }
+                )
+                .AsQueryable();
+
             if (!string.IsNullOrEmpty(search))
             {
                 var sv = search.ToLower();
-                query = query.Where(e => e.EmployeeCode.Contains(sv) || (e.EmployeeName ?? "").Contains(sv) || (e.MachineIP ?? "").Contains(sv) || (e.Privilege ?? "").Contains(sv));
+                query = query.Where(x =>
+                    x.Enrollment.EmployeeCode.Contains(sv) ||
+                    (x.Enrollment.EmployeeName ?? "").Contains(sv) ||
+                    (x.Enrollment.MachineIP ?? "").Contains(sv) ||
+                    (x.Enrollment.Privilege ?? "").Contains(sv)
+                );
             }
 
             if (!string.IsNullOrEmpty(sortColumn))
             {
                 switch (sortColumn)
                 {
-                    case "1": query = sortDirection == "asc" ? query.OrderBy(e => e.EmployeeCode) : query.OrderByDescending(e => e.EmployeeCode); break;
-                    case "2": query = sortDirection == "asc" ? query.OrderBy(e => e.EmployeeName) : query.OrderByDescending(e => e.EmployeeName); break;
-                    case "3": query = sortDirection == "asc" ? query.OrderBy(e => e.MachineIP) : query.OrderByDescending(e => e.MachineIP); break;
-                    case "4": query = sortDirection == "asc" ? query.OrderBy(e => e.Privilege) : query.OrderByDescending(e => e.Privilege); break;
-                    case "5": query = sortDirection == "asc" ? query.OrderBy(e => e.CreatedAt) : query.OrderByDescending(e => e.CreatedAt); break;
-                    case "6": query = sortDirection == "asc" ? query.OrderBy(e => e.IsSynced) : query.OrderByDescending(e => e.IsSynced); break;
+                    case "1": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.EmployeeCode) : query.OrderByDescending(x => x.Enrollment.EmployeeCode); break;
+                    case "2": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.EmployeeName) : query.OrderByDescending(x => x.Enrollment.EmployeeName); break;
+                    case "3": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.MachineIP) : query.OrderByDescending(x => x.Enrollment.MachineIP); break;
+                    case "4": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.Privilege) : query.OrderByDescending(x => x.Enrollment.Privilege); break;
+                    case "5": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.CreatedAt) : query.OrderByDescending(x => x.Enrollment.CreatedAt); break;
+                    case "6": query = sortDirection == "asc" ? query.OrderBy(x => x.Enrollment.IsSynced) : query.OrderByDescending(x => x.Enrollment.IsSynced); break;
+                    case "7": query = sortDirection == "asc" ? query.OrderBy(x => x.Dept != null ? x.Dept.Name : "") : query.OrderByDescending(x => x.Dept != null ? x.Dept.Name : ""); break;
                 }
             }
 
-            var records = await query.Select(e => new {
-                e.Id,
-                e.EmployeeCode,
-                e.EmployeeName,
-                e.MachineIP,
-                e.Privilege,
-                CreatedAt = e.CreatedAt,
-                IsSynced = e.IsSynced ? "Yes" : "No",
-                SyncMessage = e.SyncMessage
+            var records = await query.Select(x => new {
+                x.Enrollment.Id,
+                x.Enrollment.EmployeeCode,
+                x.Enrollment.EmployeeName,
+                x.Enrollment.MachineIP,
+                x.Enrollment.Privilege,
+                x.Enrollment.CreatedAt,
+                IsSynced = x.Enrollment.IsSynced ? "Yes" : "No",
+                x.Enrollment.SyncMessage,
+                Department = x.Dept != null ? x.Dept.Code + " — " + x.Dept.Name : ""
             }).ToListAsync();
 
-            using (var wb = new XLWorkbook())
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("Enrollments");
+
+            // Headers
+            ws.Cell(1, 1).Value = "ID";
+            ws.Cell(1, 2).Value = "Employee Code";
+            ws.Cell(1, 3).Value = "Employee Name";
+            ws.Cell(1, 4).Value = "Department";
+            ws.Cell(1, 5).Value = "Machine IP";
+            ws.Cell(1, 6).Value = "Privilege";
+            ws.Cell(1, 7).Value = "Created At";
+            ws.Cell(1, 8).Value = "Is Synced";
+            ws.Cell(1, 9).Value = "Sync Message";
+
+            var r = 2;
+            foreach (var rec in records)
             {
-                var ws = wb.Worksheets.Add("Enrollments");
-                ws.Cell(1, 1).Value = "ID";
-                ws.Cell(1, 2).Value = "Employee Code";
-                ws.Cell(1, 3).Value = "Employee Name";
-                ws.Cell(1, 4).Value = "Machine IP";
-                ws.Cell(1, 5).Value = "Privilege";
-                ws.Cell(1, 6).Value = "Created At";
-                ws.Cell(1, 7).Value = "Is Synced";
-                ws.Cell(1, 8).Value = "Sync Message";
-
-                var r = 2;
-                foreach (var rec in records)
-                {
-                    ws.Cell(r, 1).Value = rec.Id;
-                    ws.Cell(r, 2).Value = rec.EmployeeCode;
-                    ws.Cell(r, 3).Value = rec.EmployeeName;
-                    ws.Cell(r, 4).Value = rec.MachineIP;
-                    ws.Cell(r, 5).Value = rec.Privilege;
-                    ws.Cell(r, 6).Value = rec.CreatedAt;
-                    ws.Cell(r, 7).Value = rec.IsSynced;
-                    ws.Cell(r, 8).Value = rec.SyncMessage;
-                    r++;
-                }
-
-                using (var ms = new System.IO.MemoryStream())
-                {
-                    wb.SaveAs(ms);
-                    var content = ms.ToArray();
-                    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Enrollments.xlsx");
-                }
+                ws.Cell(r, 1).Value = rec.Id;
+                ws.Cell(r, 2).Value = rec.EmployeeCode;
+                ws.Cell(r, 3).Value = rec.EmployeeName;
+                ws.Cell(r, 4).Value = rec.Department;
+                ws.Cell(r, 5).Value = rec.MachineIP;
+                ws.Cell(r, 6).Value = rec.Privilege;
+                ws.Cell(r, 7).Value = rec.CreatedAt;
+                ws.Cell(r, 8).Value = rec.IsSynced;
+                ws.Cell(r, 9).Value = rec.SyncMessage;
+                r++;
             }
+
+            ws.Columns().AdjustToContents();
+
+            using var ms = new System.IO.MemoryStream();
+            wb.SaveAs(ms);
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Enrollments.xlsx");
         }
 
         [HttpPost]

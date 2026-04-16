@@ -17,6 +17,7 @@
                             <th>Employee Name</th>
                             <th>Machine IP</th>
                             <th>Privilege</th>
+                            <th>Department</th>
                             <th>Created At</th>
                             <th>Synced</th>
                             <th>Action</th>
@@ -45,6 +46,11 @@
                     { data: 'employeeName' },
                     { data: 'machineIP' },
                     { data: 'privilege' },
+                    {data: 'department',
+                     render: function (d) {
+                         return d ? d : '<span class="text-muted">—</span>';
+                     }
+                    },
                     { data: 'createdAt' },
                     {
                         data: 'isSynced',

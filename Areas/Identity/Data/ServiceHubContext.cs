@@ -23,6 +23,7 @@ public class ServiceHubContext : IdentityDbContext<ApplicationUser>
     public DbSet<Store> Stores { get; set; }
     public DbSet<MachineFormatLog> MachineFormatLogs { get; set; }
     public DbSet<Employee_Biometric_Log> Employee_Biometric_Log { get; set; }
+    public DbSet<Department> Departments { get; set; }
 
     // ── RBAC / Theme Tables ──────────────────────────────────────────────
     public DbSet<MenuItem> MenuItems { get; set; }

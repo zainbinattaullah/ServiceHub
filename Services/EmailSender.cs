@@ -12,7 +12,7 @@ namespace ServiceHub.Services
         public string Username { get; set; } = "";
         public string Password { get; set; } = "";
         public string FromEmail { get; set; } = "";
-        public string FromName { get; set; } = "Service Hub";
+        public string FromName { get; set; } = "Service Group";
         public bool EnableSsl { get; set; } = true;
     }
 

@@ -27,5 +27,7 @@ namespace ServiceHub.Models
         [Required]
         [Display(Name = "Privilege")]
         public string Privilege { get; set; }
+        public int? DepartmentId { get; set; }
+        public IEnumerable<SelectListItem>? Departments { get; set; }
     }
 }

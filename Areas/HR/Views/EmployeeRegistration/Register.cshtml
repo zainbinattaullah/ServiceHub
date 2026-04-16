@@ -54,6 +54,14 @@
                             }
                             @Html.ValidationMessageFor(m => m.Privilege, "", new { @class = "text-danger" })
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@Html.LabelFor(m => m.DepartmentId)</label>
+                            @Html.DropDownListFor(m => m.DepartmentId,
+                                Model.Departments ?? Enumerable.Empty<SelectListItem>(),
+                                "-- Select Department --",
+                                new { @class = "form-select", id = "departmentSelect" })
+                            @Html.ValidationMessageFor(m => m.DepartmentId, "", new { @class = "text-danger" })
+                        </div>
                         <div class="col-12">
                             <button id="registerBtn" type="submit" class="btn btn-gradient" @(ViewBag.IsTransferWindowOpen == false ? "disabled" : "")>
                                 <i class="fas fa-user-plus me-1"></i> Register
@@ -77,6 +85,12 @@
                 allowClear: true,
                 width: '100%'
             });
+
+            // $('#departmentSelect').select2({
+            //     placeholder: '-- Select Department --',
+            //     allowClear: true,
+            //     width: '100%'
+            // });
 
             function checkTransferWindow() {
                 $.get('/HR/TransferEmployee_API/CheckTransferWindow', function(data) {

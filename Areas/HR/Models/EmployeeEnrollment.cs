@@ -35,5 +35,6 @@ namespace ServiceHub.Areas.HR.Models
         public string? SyncMessage { get; set; }
 
         public DateTime? SyncedAt { get; set; }
+        public int? DepartmentId { get; set; }
     }
 }

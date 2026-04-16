@@ -8,6 +8,386 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="card">
+            <div class="card-header d-flex align-items-center flex-wrap gap-2">
+                <a asp-action="Create" class="btn btn-sm btn-gradient">
+                    <i class="fas fa-plus me-1"></i> Create New
+                </a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <button id="btnBulkFormat" class="btn btn-sm btn-gradient-danger ms-2" disabled>
+                        <i class="fas fa-trash-alt me-1"></i> Format Selected (<span id="selectedCount">0</span>)
+                    </button>
+                }
+            </div>
+            <div class="card-body">
+                <table id="attendanceTable" class="table table-striped table-bordered table-hover" style="width:100%">
+                    <thead>
+                        <tr>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <th style="width:40px;">
+                                    <input type="checkbox" id="checkAll" title="Select All">
+                                </th>
+                            }
+                            <th>Name</th>
+                            <th>IP Address</th>
+                            <th>Port</th>
+                            <th>Description</th>
+                            <th>Location</th>
+                            <th>Active</th>
+                            <th>Fetch Records</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Format Confirmation Modal -->
+<div class="modal fade" id="bulkFormatModal" tabindex="-1" aria-labelledby="bulkFormatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="bulkFormatModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Format Selected Machines — Are you sure?
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold text-danger">
+                    This will permanently delete ALL users, fingerprints, and attendance records from the selected machines.
+                </p>
+                <p>This action <strong>cannot be undone</strong>. The activity will be logged.</p>
+                <p class="mb-1"><strong>Machines selected for format:</strong></p>
+                <table class="table table-sm table-bordered" id="bulkFormatPreviewTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Machine Name</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulkFormatPreviewBody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmBulkFormatBtn">
+                    <i class="fas fa-trash-alt me-1"></i> Yes, Format All Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single Format Confirmation Modal -->
+<div class="modal fade" id="formatMachineModal" tabindex="-1" aria-labelledby="formatMachineModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="formatMachineModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Format Machine — Are you sure?
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold text-danger">
+                    This will permanently delete ALL users, fingerprints, and attendance records from the machine.
+                </p>
+                <p>
+                    Machine: <strong id="formatMachineName"></strong><br>
+                    IP: <strong id="formatMachineIP"></strong>
+                </p>
+                <p>This action <strong>cannot be undone</strong>. The activity will be logged.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmFormatBtn">
+                    <i class="fas fa-trash-alt me-1"></i> Yes, Format Machine
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Format Logs Modal -->
+<div class="modal fade" id="formatLogsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-history me-2"></i> Format History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-bordered" id="formatLogsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Status</th>
+                            <th>Performed By</th>
+                            <th>Date / Time</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="formatLogsTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var isAdmin = @(User.IsInRole("Admin") ? "true" : "false");
+
+        $(document).ready(function () {
+            var table = $('#attendanceTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '/HR/AttendanceMachine/GetAttendanceMachines',
+                    type: 'POST'
+                },
+                columns: [
+                    // Checkbox column — only rendered for admin
+                    isAdmin ? {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            return `<input type="checkbox" class="row-check" data-ip="${row.ipAddress}" data-name="${row.name}" data-id="${row.id}">`;
+                        }
+                    } : null,
+                    { data: 'name',        name: 'name' },
+                    { data: 'ipAddress',   name: 'ipAddress' },
+                    { data: 'port',        name: 'port' },
+                    { data: 'description', name: 'description' },
+                    { data: 'location',    name: 'location' },
+                    {
+                        data: 'isActive', name: 'isActive',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success">Yes</span>'
+                                : '<span class="badge bg-danger">No</span>';
+                        }
+                    },
+                    {
+                        data: 'isFetchAll', name: 'isFetchAll',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success">All</span>'
+                                : '<span class="badge bg-success">Latest</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            let html = `<a href="/HR/AttendanceMachine/Edit/${row.id}" class="btn btn-sm btn-gradient me-1">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </a>`;
+                            if (isAdmin) {
+                                html += `<button class="btn btn-sm btn-gradient-danger btn-format-machine"
+                                            data-ip="${row.ipAddress}" data-name="${row.name}" data-id="${row.id}"
+                                            title="Format Machine">
+                                            <i class="fas fa-trash-alt me-1"></i>Format
+                                         </button>`;
+                            }
+                            return html;
+                        }
+                    }
+                ].filter(Boolean), // removes null if not admin
+                dom: '<"row"<"col-sm-2"l><"col-sm-10"Bf>>' +
+                     '<"row"<"col-sm-12"tr>>' +
+                     '<"row"<"col-sm-5"i><"col-sm-7"p>>',
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100, 200, 500, 1000, 10000], [10, 25, 50, 100, 200, 500, 1000, 10000]],
+                buttons: [
+                    { extend: 'copy',  text: '<i class="fas fa-copy"></i> Copy',  className: 'btn btn-dt-primary btn-sm' },
+                    {
+                        text: '<i class="fas fa-file-excel"></i> Export All (Excel)',
+                        className: 'btn btn-dt-success btn-sm',
+                        action: function (e, dt) {
+                            var searchValue    = $('#attendanceTable_filter input').val();
+                            var sortColumn     = dt.order()[0][0];
+                            var sortDirection  = dt.order()[0][1];
+                            window.location.href = '/HR/AttendanceMachine/ExportAttendanceMachines' +
+                                '?search='        + encodeURIComponent(searchValue   || '') +
+                                '&sortColumn='    + encodeURIComponent(sortColumn    || '') +
+                                '&sortDirection=' + encodeURIComponent(sortDirection || '');
+                        }
+                    },
+                    { extend: 'pdf',   text: '<i class="fas fa-file-pdf"></i> PDF',   className: 'btn btn-dt-danger btn-sm' },
+                    { extend: 'print', text: '<i class="fas fa-print"></i> Print',    className: 'btn btn-dt-warning btn-sm' }
+                ]
+            });
+
+            // ── Select All checkbox ──────────────────────────────────────
+            $('#checkAll').on('change', function () {
+                var checked = $(this).is(':checked');
+                $('#attendanceTable tbody .row-check').prop('checked', checked);
+                updateBulkButton();
+            });
+
+            // ── Individual row checkbox ──────────────────────────────────
+            $('#attendanceTable tbody').on('change', '.row-check', function () {
+                updateBulkButton();
+                var total   = $('#attendanceTable tbody .row-check').length;
+                var checked = $('#attendanceTable tbody .row-check:checked').length;
+                $('#checkAll').prop('indeterminate', checked > 0 && checked < total);
+                $('#checkAll').prop('checked', checked === total);
+            });
+
+            // Reset checkboxes on page redraw
+            table.on('draw', function () {
+                updateBulkButton();
+                $('#checkAll').prop('checked', false).prop('indeterminate', false);
+            });
+        });
+
+        // ── Update bulk format button state ─────────────────────────────
+        function updateBulkButton() {
+            var count = $('#attendanceTable tbody .row-check:checked').length;
+            $('#selectedCount').text(count);
+            $('#btnBulkFormat').prop('disabled', count === 0);
+        }
+
+        // ── Open bulk format confirmation modal ──────────────────────────
+        $('#btnBulkFormat').on('click', function () {
+            var selected = [];
+            $('#attendanceTable tbody .row-check:checked').each(function () {
+                selected.push({
+                    id:   $(this).data('id'),
+                    ip:   $(this).data('ip'),
+                    name: $(this).data('name')
+                });
+            });
+
+            if (selected.length === 0) return;
+
+            var tbody = $('#bulkFormatPreviewBody').empty();
+            selected.forEach(function (m, i) {
+                tbody.append(`<tr>
+                    <td>${i + 1}</td>
+                    <td><strong>${m.name}</strong></td>
+                    <td>${m.ip}</td>
+                </tr>`);
+            });
+
+            new bootstrap.Modal(document.getElementById('bulkFormatModal')).show();
+        });
+
+        // ── Confirm bulk format ──────────────────────────────────────────
+        $('#confirmBulkFormatBtn').on('click', function () {
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Formatting...');
+
+            var machines = [];
+            $('#attendanceTable tbody .row-check:checked').each(function () {
+                machines.push({ MachineIP: $(this).data('ip') });
+            });
+
+            $.ajax({
+                url: '/HR/AttendanceMachine/FormatMachines',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ Machines: machines }),
+                success: function (res) {
+                    bootstrap.Modal.getInstance(document.getElementById('bulkFormatModal')).hide();
+                    showBulkResult(res.results);
+                    $('#attendanceTable tbody .row-check').prop('checked', false);
+                    $('#checkAll').prop('checked', false).prop('indeterminate', false);
+                    updateBulkButton();
+                },
+                error: function () {
+                    bootstrap.Modal.getInstance(document.getElementById('bulkFormatModal')).hide();
+                    alert('Bulk format request failed. Please try again.');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Yes, Format All Selected');
+                }
+            });
+        });
+
+        // ── Show per-machine result summary ──────────────────────────────
+        function showBulkResult(results) {
+            if (!results || results.length === 0) { alert('No results returned.'); return; }
+            var lines = results.map(function (r) {
+                return (r.success ? '✔' : '✘') + '  ' + r.machineName + ' (' + r.machineIP + '): ' + r.message;
+            });
+            alert('Format Results:\n\n' + lines.join('\n'));
+        }
+
+        // ── Single machine format ────────────────────────────────────────
+        var _formatIP = '', _formatId = 0;
+
+        $(document).on('click', '.btn-format-machine', function () {
+            _formatIP = $(this).data('ip');
+            _formatId = $(this).data('id');
+            $('#formatMachineName').text($(this).data('name'));
+            $('#formatMachineIP').text(_formatIP);
+            new bootstrap.Modal(document.getElementById('formatMachineModal')).show();
+        });
+
+        $('#confirmFormatBtn').on('click', function () {
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Formatting...');
+
+            $.ajax({
+                url: '/HR/AttendanceMachine/FormatMachine',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ MachineIP: _formatIP }),
+                success: function (res) {
+                    bootstrap.Modal.getInstance(document.getElementById('formatMachineModal')).hide();
+                    alert(res.message);
+                },
+                error: function (xhr) {
+                    bootstrap.Modal.getInstance(document.getElementById('formatMachineModal')).hide();
+                    var msg = 'Format failed.';
+                    try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
+                    alert(msg);
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Yes, Format Machine');
+                }
+            });
+        });
+    </script>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@* @model IEnumerable<AttendanceMachine>
+
+@{
+    ViewData["Title"] = "Attendance Machines";
+    ViewData["PageIcon"] = "fas fa-server";
+}
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
             <div class="card-header d-flex  align-items-center flex-wrap gap-2">
                 <a asp-action="Create" class="btn btn-sm btn-gradient">
                     <i class="fas fa-plus me-1"></i> Create New
@@ -200,3 +580,4 @@
         });
     </script>
 }
+ *@
