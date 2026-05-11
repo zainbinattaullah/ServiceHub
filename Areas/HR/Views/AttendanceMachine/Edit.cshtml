@@ -57,6 +57,24 @@
                                 <label class="form-check-label" for="IsFetchAll">Fetch All Records</label>
                             </div>
                         </div>
+
+                        <div class="col-12"><hr class="my-1" /><strong>Store Assignment</strong></div>
+
+                        <div class="col-md-6">
+                            <label asp-for="StoreId" class="form-label">Store</label>
+                            <select asp-for="StoreId" asp-items="ViewBag.Stores" id="StoreId" class="form-select">
+                                <option value="">— Select Store —</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Area</label>
+                            <input id="AreaDisplay" class="form-control" readonly placeholder="Auto-filled" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Region</label>
+                            <input id="RegionDisplay" class="form-control" readonly placeholder="Auto-filled" />
+                        </div>
+
                         <div class="col-12">
                             <label asp-for="Description" class="form-label">Description</label>
                             <textarea asp-for="Description" class="form-control" rows="3"></textarea>
@@ -73,3 +91,25 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function loadStoreInfo(id) {
+            if (!id) { $('#AreaDisplay').val(''); $('#RegionDisplay').val(''); return; }
+            $.getJSON('/HR/Store/GetStoreInfo?id=' + id, function (data) {
+                $('#AreaDisplay').val(data.areaName || '');
+                $('#RegionDisplay').val(data.regionName || '');
+            });
+        }
+
+        $(document).ready(function () {
+            // Pre-fill on page load if a store is already selected
+            var currentStore = $('#StoreId').val();
+            if (currentStore) loadStoreInfo(currentStore);
+        });
+
+        $('#StoreId').on('change', function () {
+            loadStoreInfo($(this).val());
+        });
+    </script>
+}

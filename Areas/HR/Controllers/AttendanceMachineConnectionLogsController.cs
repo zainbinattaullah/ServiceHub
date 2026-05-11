@@ -17,7 +17,6 @@ namespace ServiceHub.Areas.HR.Controllers
     public class AttendanceMachineConnectionLogsController : Controller
     {
         private readonly ServiceHubContext _dbcontext;
-
         public AttendanceMachineConnectionLogsController(ServiceHubContext context)
         {
             _dbcontext = context;
@@ -26,8 +25,6 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             return View();
         }
-
-
         [HttpPost]
         public async Task<IActionResult> GetConnectionLogs()
         {
@@ -66,7 +63,6 @@ namespace ServiceHub.Areas.HR.Controllers
                     (m.log.RecordsRead.HasValue && m.log.RecordsRead.Value.ToString().Contains(searchValue))
                 );
             }
-
             // 🔁 Dynamic sort logic
             if (!string.IsNullOrEmpty(sortColumnName) && !string.IsNullOrEmpty(sortDirection))
             {
@@ -84,12 +80,9 @@ namespace ServiceHub.Areas.HR.Controllers
                     _ => query.OrderByDescending(x => x.log.Id)
                 };
             }
-
             var totalRecords = await query.CountAsync();
-
             var queryData = await query.Skip(skip).Take(pageSize).ToListAsync();
             DateTime currentTime = DateTime.Now;
-
             var data = queryData.Select(m => new
             {
                 id = m.log.Id,
@@ -102,7 +95,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 recordsRead = m.log.RecordsRead,
                 lastFetching = GetTimeAgo(m.log.Connection_StartTime, currentTime)
             }).ToList();
-
             return Json(new
             {
                 draw = draw,
@@ -200,7 +192,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 worksheet.Cell(1, 6).Value = "Error Message";
                 worksheet.Cell(1, 7).Value = "Records Read";
                 worksheet.Cell(1, 8).Value = "Last Fetching";
-
                 int row = 2;
                 foreach (var record in records)
                 {
@@ -212,10 +203,8 @@ namespace ServiceHub.Areas.HR.Controllers
                     worksheet.Cell(row, 6).Value = record.ErrorMessage;
                     worksheet.Cell(row, 7).Value = record.RecordsRead;
                     worksheet.Cell(row, 8).Value = record.LastFetching;
-
                     row++;
                 }
-
                 using (var stream = new MemoryStream())
                 {
                     workbook.SaveAs(stream);

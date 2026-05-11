@@ -20,7 +20,8 @@
                             <th>Department</th>
                             <th>Created At</th>
                             <th>Synced</th>
-                            <th>Action</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -61,13 +62,27 @@
                         }
                     },
                     {
+                        data: 'isActive',
+                        orderable: false,
+                        render: function (d, t, row) {
+                            return d
+                                ? '<span class="badge bg-success"><i class="fas fa-user-check me-1"></i>Active</span>'
+                                : '<span class="badge bg-danger"><i class="fas fa-user-slash me-1"></i>Inactive</span>';
+                        }
+                    },
+                    {
                         data: null,
                         orderable: false,
-                        render: function (row) {
-                            if (!row.isSynced) {
-                                return '<button class="btn btn-sm btn-gradient retry-send" data-id="' + row.id + '"><i class="fas fa-redo me-1"></i>Retry</button>';
-                            }
-                            return '';
+                        render: function (d, t, row) {
+                            var retryBtn = !row.isSynced
+                                ? '<button class="btn btn-sm btn-gradient retry-send me-1" data-id="' + row.id + '"><i class="fas fa-redo me-1"></i>Retry</button>'
+                                : '';
+                            var toggleLabel = row.isActive
+                                ? '<i class="fas fa-user-slash me-1"></i>Deactivate'
+                                : '<i class="fas fa-user-check me-1"></i>Activate';
+                            var toggleClass = row.isActive ? 'btn-danger' : 'btn-success';
+                            var toggleBtn = '<button class="btn btn-sm ' + toggleClass + ' toggle-active" data-code="' + row.employeeCode + '" data-active="' + row.isActive + '">' + toggleLabel + '</button>';
+                            return retryBtn + toggleBtn;
                         }
                     }
                 ],
@@ -115,6 +130,38 @@
                         btn.prop('disabled', false).html('<i class="fas fa-redo me-1"></i>Retry');
                     });
             });
+
+            // Toggle Active / Deactivate
+            $('#enrollmentsTable').on('click', '.toggle-active', function () {
+                var btn  = $(this);
+                var code = btn.data('code');
+                var isActive = btn.data('active');
+                var label = isActive ? 'deactivate' : 'activate';
+                if (!confirm('Are you sure you want to ' + label + ' employee ' + code + '?\nThis will update all ZKTeco machines they are registered on.')) return;
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Processing...');
+
+                $.ajax({
+                    url: '/HR/Enrollment/ToggleActive',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    data: JSON.stringify({ employeeCode: code }),
+                    success: function (res) {
+                        if (res.success) {
+                            table.ajax.reload(null, false);
+                        } else {
+                            alert('Failed: ' + (res.message || 'Unknown error'));
+                            btn.prop('disabled', false);
+                        }
+                    },
+                    error: function (xhr) {
+                        alert('Server error: ' + xhr.status);
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
         });
     </script>
+    @Html.AntiForgeryToken()
 }

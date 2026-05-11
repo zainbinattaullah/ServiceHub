@@ -1,0 +1,26 @@
+@model ServiceHub.Areas.HR.Models.Region
+
+@{
+    ViewData["Title"] = "Add Region";
+    ViewData["PageIcon"] = "fas fa-globe";
+}
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><strong>Add Region</strong></div>
+            <div class="card-body">
+                @using (Html.BeginForm("Create", "Region", new { area = "HR" }, FormMethod.Post, null, new { @class = "mt-2" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+                    @await Html.PartialAsync("_Form", Model)
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

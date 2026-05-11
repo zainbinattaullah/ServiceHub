@@ -1,0 +1,31 @@
+@model ServiceHub.Areas.HR.Models.Area
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label">@Html.LabelFor(m => m.Code)</label>
+        @Html.TextBoxFor(m => m.Code, new { @class = "form-control", placeholder = "e.g. A1, NORTH" })
+        @Html.ValidationMessageFor(m => m.Code, "", new { @class = "text-danger" })
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">@Html.LabelFor(m => m.Name)</label>
+        @Html.TextBoxFor(m => m.Name, new { @class = "form-control", placeholder = "Area full name" })
+        @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+    </div>
+    <div class="col-md-12">
+        <label class="form-label">@Html.LabelFor(m => m.Description)</label>
+        @Html.TextAreaFor(m => m.Description, new { @class = "form-control", rows = "2", placeholder = "Optional description" })
+        @Html.ValidationMessageFor(m => m.Description, "", new { @class = "text-danger" })
+    </div>
+    <div class="col-md-6">
+        <div class="form-check form-switch mt-2">
+            @Html.CheckBoxFor(m => m.IsActive, new { @class = "form-check-input", role = "switch" })
+            <label class="form-check-label">@Html.LabelFor(m => m.IsActive)</label>
+        </div>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-gradient">
+            <i class="fas fa-save me-1"></i> Save
+        </button>
+        <a asp-action="Index" class="btn btn-secondary ms-1">Cancel</a>
+    </div>
+</div>

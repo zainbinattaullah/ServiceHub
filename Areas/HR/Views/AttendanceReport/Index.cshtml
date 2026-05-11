@@ -143,7 +143,6 @@
         white-space: nowrap;
     }
 
-    .month-filter { display: none; }
     .date-filter  { display: flex; }
 
     @@media (max-width: 768px) {
@@ -196,29 +195,6 @@
                     <i class="fas fa-calendar-alt"
                        style="position:absolute; right:8px; color:#6b7a94; pointer-events:none;"></i>
                 </div>
-            </div>
-
-            <!-- Month / Year filters (Monthly) -->
-            <div class="fg month-filter" id="fgMonth">
-                <label for="fMonth">Month</label>
-                <select id="fMonth">
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                    <option value="3">March</option>
-                    <option value="4">April</option>
-                    <option value="5">May</option>
-                    <option value="6">June</option>
-                    <option value="7">July</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
-                </select>
-            </div>
-            <div class="fg month-filter" id="fgYear">
-                <label for="fYear">Year</label>
-                <input type="number" id="fYear" min="2018" max="2099" style="width:90px;" />
             </div>
 
             <div class="fg">
@@ -287,8 +263,8 @@
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Working Hours</th>
-                        <th>Late Mark</th>
-                        <th>Overtime</th>
+                        <th>12 Working Hours</th>
+                        <th>Extra Time</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -323,7 +299,7 @@
                         <th>Absent</th>
                         <th>Late Days</th>
                         <th>Total Worked</th>
-                        <th>Overtime</th>
+                        <th>Extra Time</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -374,7 +350,7 @@ $(function () {
     }
 
     // Initialize Select2 on filter dropdowns
-    $('#fMonth, #fDept, #fLocation').select2({
+    $('#fDept, #fLocation').select2({
         width: '100%',
         minimumResultsForSearch: 5
     });
@@ -384,12 +360,9 @@ $(function () {
     // ----------------------------------------------------------------
     var currentType = 'Detail';
 
-    // Seed month/year to current
     var now = new Date();
-    $('#fMonth').val(now.getMonth() + 1);
-    $('#fYear').val(now.getFullYear());
 
-     // Set default date range: from = first day of current month, to = today
+    // Set default date range: from = first day of current month, to = today
     function padTwo(n) { return n < 10 ? '0' + n : '' + n; }
 
     var todayIso    = now.getFullYear() + '-' + padTwo(now.getMonth() + 1) + '-' + padTwo(now.getDate());
@@ -415,18 +388,12 @@ $(function () {
 
         if (currentType === 'Detail') {
             $('#panelDetail').show();
-            $('.date-filter').show();
-            $('.month-filter').hide();
             tableDetail.ajax.reload();
         } else if (currentType === 'Monthly') {
             $('#panelMonthly').show();
-            $('.date-filter').hide();
-            $('.month-filter').show();
             tableMonthly.ajax.reload();
         } else {
             $('#panelAbsentee').show();
-            $('.date-filter').show();
-            $('.month-filter').hide();
             tableAbsentee.ajax.reload();
         }
     });
@@ -435,29 +402,25 @@ $(function () {
     //  Common AJAX data builder
     // ----------------------------------------------------------------
     function ajaxData(d) {
-        d.reportType = currentType;
-        d.dateFrom   = $('#dateFrom').val();
-        d.dateTo     = $('#dateTo').val();
-        d.employeeId = $('#fEmployee').val();
+        d.reportType   = currentType;
+        d.dateFrom     = $('#dateFrom').val();
+        d.dateTo       = $('#dateTo').val();
+        d.employeeId   = $('#fEmployee').val();
         d.employeeName = $('#fEmpName').val();
-        d.department = $('#fDept').val();
-        d.location   = $('#fLocation').val();
-        d.month      = $('#fMonth').val();
-        d.year       = $('#fYear').val();
+        d.department   = $('#fDept').val();
+        d.location     = $('#fLocation').val();
         return d;
     }
 
     function exportUrl(format) {
         return '/HR/AttendanceReport/Export' + format
-            + '?reportType=' + encodeURIComponent(currentType)
-            + '&dateFrom='   + encodeURIComponent($('#dateFrom').val())
-            + '&dateTo='     + encodeURIComponent($('#dateTo').val())
-            + '&employeeId=' + encodeURIComponent($('#fEmployee').val())
+            + '?reportType='   + encodeURIComponent(currentType)
+            + '&dateFrom='     + encodeURIComponent($('#dateFrom').val())
+            + '&dateTo='       + encodeURIComponent($('#dateTo').val())
+            + '&employeeId='   + encodeURIComponent($('#fEmployee').val())
             + '&employeeName=' + encodeURIComponent($('#fEmpName').val())
-            + '&department=' + encodeURIComponent($('#fDept').val())
-            + '&location='   + encodeURIComponent($('#fLocation').val())
-            + '&month='      + encodeURIComponent($('#fMonth').val())
-            + '&year='       + encodeURIComponent($('#fYear').val());
+            + '&department='   + encodeURIComponent($('#fDept').val())
+            + '&location='     + encodeURIComponent($('#fLocation').val());
     }
 
     // ----------------------------------------------------------------
@@ -623,20 +586,18 @@ $(function () {
 
     $('#btnApply').on('click', reloadActive);
 
-    $('#dateFrom, #dateTo, #fEmployee, #fDept, #fLocation, #fMonth, #fYear')
+    $('#dateFrom, #dateTo, #fEmployee, #fDept, #fLocation')
         .on('keypress', function (e) { if (e.which === 13) reloadActive(); });
 
     $('#btnClear').on('click', function () {
-        $('#dateFrom').val('');
-        $('#dateFromDisplay').val('');
-        $('#dateTo').val('');
-        $('#dateToDisplay').val('');
+        $('#dateFrom').val(firstDayIso);
+        $('#dateFromDisplay').val(formatToDisplay(firstDayIso));
+        $('#dateTo').val(todayIso);
+        $('#dateToDisplay').val(formatToDisplay(todayIso));
         $('#fEmployee').val('');
         $('#fEmpName').val('');
         $('#fDept').val('').trigger('change');
         $('#fLocation').val('').trigger('change');
-        $('#fMonth').val(now.getMonth() + 1).trigger('change');
-        $('#fYear').val(now.getFullYear());
         reloadActive();
     });
 

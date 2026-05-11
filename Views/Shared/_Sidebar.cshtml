@@ -61,15 +61,8 @@
                         </ul>
                     </li>
 
-                    <li class="nav-item">
-                        <a asp-area="HR"
-                           asp-controller="MenuManagement"
-                           asp-action="Index"
-                           class="nav-link">
-                            <i class="nav-icon fas fa-list-alt"></i>
-                            <p>Menu Management</p>
-                        </a>
-                    </li>
+                    @* Menu Management is now a DB-driven item
+                       under the "Administration & Security" parent group. *@
                 }
 
             </ul>
@@ -79,11 +72,12 @@
 </aside>
 <!--end::Sidebar-->
 
-<!-- Sidebar script — active state + treeview toggle -->
+<!-- Sidebar script — active state + accordion treeview toggle -->
 <script>
 $(document).ready(function () {
 
     var currentPath = window.location.pathname.toLowerCase();
+    var ANIM_MS = 220;   // animation duration (ms) — tweak here globally
 
     // ── 1. Auto-mark active child links and open their parent ───────────
     $('.nav-treeview .nav-link').each(function () {
@@ -104,18 +98,41 @@ $(document).ready(function () {
         }
     });
 
-    // ── 3. Click handler — group toggle + leaf active ────────────────────
+    // ── Helper: close every open group except the one passed in ─────────
+    function collapseOthers($exceptItem) {
+        $('.sidebar-menu .nav-item.menu-open').each(function () {
+            var $item = $(this);
+            if ($exceptItem && $item.is($exceptItem)) return;   // skip the target
+            $item.removeClass('menu-open');
+            $item.find('> .nav-treeview').slideUp(ANIM_MS);
+        });
+    }
+
+    // ── 3. Click handler — accordion + smooth animation ──────────────────
     $('.sidebar-menu').on('click', '.nav-link', function (e) {
-        var $this    = $(this);
-        var $tree    = $this.siblings('.nav-treeview');
+        var $this = $(this);
+        var $tree = $this.siblings('.nav-treeview');
 
         if ($tree.length) {
-            // Group header — toggle submenu
+            // Group header clicked
             e.preventDefault();
             e.stopImmediatePropagation();   // prevent AdminLTE re-firing
-            var opening = !$tree.is(':visible');
-            $tree.slideToggle(160);
-            $this.closest('.nav-item').toggleClass('menu-open', opening);
+
+            var $item  = $this.closest('.nav-item');
+            var isOpen = $item.hasClass('menu-open');
+
+            // Accordion: collapse all other open groups first
+            collapseOthers($item);
+
+            if (isOpen) {
+                // Already open — collapse it
+                $item.removeClass('menu-open');
+                $tree.slideUp(ANIM_MS);
+            } else {
+                // Open the clicked group
+                $item.addClass('menu-open');
+                $tree.slideDown(ANIM_MS);
+            }
             return;
         }
 
@@ -123,7 +140,7 @@ $(document).ready(function () {
         $('.sidebar-menu .nav-link').removeClass('active');
         $this.addClass('active');
 
-        // Keep the parent group visible
+        // Keep the parent group visible (do not re-animate, just ensure open)
         var $parentTree = $this.closest('.nav-treeview');
         if ($parentTree.length) {
             $parentTree.show();

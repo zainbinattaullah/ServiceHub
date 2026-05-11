@@ -1,0 +1,311 @@
+@using Microsoft.AspNetCore.Identity
+@model List<IdentityRole>
+@{
+    ViewData["Title"] = "Role Menu Assignment";
+    ViewData["PageIcon"] = "fas fa-user-shield";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .role-link { transition: background .12s; }
+    .role-link.active { background: var(--sh-primary, #1e3a5f) !important; color: #fff !important; }
+    .role-link.active i { color: #fff !important; }
+
+    .menu-group-header {
+        background: var(--sh-surface-alt, #f0f4fa);
+        border-radius: 6px;
+        padding: 7px 12px;
+        margin-bottom: 2px;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--sh-primary, #1e3a5f);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: default;
+    }
+    .menu-group-header .group-icon { width:16px; text-align:center; }
+
+    .menu-child-list { padding: 2px 0 8px 36px; }
+
+    .menu-item-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 13px;
+        margin-bottom: 1px;
+    }
+    .menu-item-row:hover { background: var(--sh-surface-alt, #f7f9fd); }
+    .menu-item-row.item-inactive { opacity: .5; }
+    .menu-item-row .item-icon { width:14px; text-align:center; font-size:11px; color:#6b7a94; }
+
+    #menuLoading { text-align:center; padding:40px; color:#adb5bd; }
+    #menuPlaceholder { text-align:center; padding:50px; color:#adb5bd; font-size:14px; }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <div id="saveAlert" class="alert alert-success alert-dismissible fade show d-none">
+            <i class="fas fa-check-circle me-2"></i><span id="saveAlertMsg"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div id="errAlert" class="alert alert-danger alert-dismissible fade show d-none">
+            <i class="fas fa-exclamation-triangle me-2"></i><span id="errAlertMsg"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+
+    @* Role list *@
+    <div class="col-lg-3 col-md-4">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-users"></i> <span>Roles</span>
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach (var role in Model)
+                {
+                    <a href="#" class="list-group-item list-group-item-action role-link"
+                       data-id="@role.Id" data-name="@role.Name">
+                        <i class="fas fa-user-tag me-2" style="font-size:11px;opacity:.6;"></i>@role.Name
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Menu assignment panel *@
+    <div class="col-lg-9 col-md-8">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span id="panelTitle"><i class="fas fa-sitemap me-2"></i>Menu Assignment</span>
+                <div class="d-flex align-items-center gap-3">
+                    <small class="text-muted" id="selCount"></small>
+                    <button class="btn btn-sm btn-gradient" id="btnSave" style="display:none;">
+                        <i class="fas fa-save me-1"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+
+                <div class="alert alert-info py-2 mb-3" style="font-size:12px;">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Check each menu this role should see. A menu item with <strong>no role assigned</strong>
+                    is visible to all authenticated users. It becomes role-restricted only once
+                    at least one role is checked for it.
+                </div>
+
+                <div id="menuPlaceholder">
+                    <i class="fas fa-hand-point-left fa-2x mb-2" style="display:block;"></i>
+                    Select a role from the left to view and edit its menu access.
+                </div>
+
+                <div id="menuLoading" style="display:none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+
+                <div id="menuTree" style="display:none;"></div>
+
+                <div id="warnBox" class="alert alert-warning py-2 mt-3 d-none" style="font-size:12px;">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>No menus checked.</strong> This role will have no dedicated restrictions —
+                    it will still see any menu item that has no role assigned at all.
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+$(function () {
+
+    var currentRoleId   = null;
+    var currentRoleName = '';
+    var TOKEN = $('input[name="__RequestVerificationToken"]').val();
+
+    // ── Role click ────────────────────────────────────────────────
+    $('.role-link').on('click', function (e) {
+        e.preventDefault();
+        $('.role-link').removeClass('active');
+        $(this).addClass('active');
+        currentRoleId   = $(this).data('id');
+        currentRoleName = $(this).data('name');
+        loadMenu(currentRoleId, currentRoleName);
+    });
+
+    // ── Load menu for selected role ───────────────────────────────
+    function loadMenu(roleId, roleName) {
+        $('#menuPlaceholder, #warnBox').addClass('d-none').hide();
+        $('#menuTree').hide();
+        $('#menuLoading').show();
+        $('#btnSave').hide();
+        $('#selCount').text('');
+        $('#panelTitle').html('<i class="fas fa-sitemap me-2"></i>Menus for <strong>' + escHtml(roleName) + '</strong>');
+
+        $.get('/HR/MenuManagement/GetRoleMenuItems?roleId=' + roleId)
+            .done(function (items) {
+                renderTree(items);
+                $('#menuLoading').hide();
+                $('#menuTree').show();
+                $('#btnSave').show();
+                updateCount();
+            })
+            .fail(function () {
+                $('#menuLoading').hide();
+                showErr('Failed to load menu items. Please try again.');
+            });
+    }
+
+    // ── Render tree ───────────────────────────────────────────────
+    function renderTree(items) {
+        var parents  = items.filter(function (i) { return i.parentId == null; });
+        var children = items.filter(function (i) { return i.parentId != null; });
+        var html     = '';
+
+        parents.forEach(function (p) {
+            var kids = children.filter(function (c) { return c.parentId === p.id; });
+
+            if (kids.length === 0) {
+                html += itemRow(p, false, null);
+            } else {
+                var checkedKids = kids.filter(function (k) { return k.isAssigned; });
+                var allChk  = checkedKids.length === kids.length;
+                var someChk = checkedKids.length > 0 && !allChk;
+
+                html += '<div class="menu-group-header">'
+                      + '  <input type="checkbox" class="form-check-input chk-group me-1"'
+                      + '    data-group="' + p.id + '"'
+                      + (allChk ? ' checked' : '')
+                      + (someChk ? ' data-indeterminate="1"' : '') + '>'
+                      + '  <i class="' + icon(p.icon, 'fas fa-folder') + ' group-icon"></i>'
+                      + '  ' + escHtml(p.name)
+                      + (p.isActive ? '' : ' <span class="badge bg-secondary ms-1" style="font-size:10px;">Inactive</span>')
+                      + '</div>'
+                      + '<div class="menu-child-list" id="kids-' + p.id + '">';
+
+                kids.forEach(function (k) { html += itemRow(k, true, p.id); });
+                html += '</div>';
+            }
+        });
+
+        $('#menuTree').html(html);
+
+        // Apply indeterminate CSS state after DOM insert
+        $('.chk-group[data-indeterminate="1"]').each(function () {
+            this.indeterminate = true;
+        });
+    }
+
+    function itemRow(item, isChild, parentId) {
+        var inactiveClass = item.isActive ? '' : ' item-inactive';
+        var openBadge = item.isRestricted
+            ? ''
+            : ' <span class="badge bg-success ms-auto" style="font-size:10px;">Open to all</span>';
+        var inactiveBadge = item.isActive
+            ? ''
+            : ' <span class="badge bg-secondary ms-1" style="font-size:10px;">Inactive</span>';
+
+        var parentAttr = parentId != null ? ' data-parent="' + parentId + '"' : '';
+
+        return '<div class="menu-item-row' + inactiveClass + '">'
+             + '  <input type="checkbox" class="form-check-input chk-leaf"'
+             + '    data-id="' + item.id + '"' + parentAttr
+             + (item.isAssigned ? ' checked' : '') + '>'
+             + '  <i class="' + icon(item.icon, 'fas fa-circle') + ' item-icon"></i>'
+             + '  <span>' + escHtml(item.name) + '</span>'
+             + openBadge + inactiveBadge
+             + '</div>';
+    }
+
+    function icon(i, fallback) { return (i && i.trim()) ? i.trim() : fallback; }
+    function escHtml(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Group checkbox → toggle all children ─────────────────────
+    $('#menuTree').on('change', '.chk-group', function () {
+        var gid = $(this).data('group');
+        this.indeterminate = false;
+        $('#kids-' + gid + ' .chk-leaf').prop('checked', this.checked);
+        updateCount();
+    });
+
+    // ── Child checkbox → update parent indeterminate ──────────────
+    $('#menuTree').on('change', '.chk-leaf', function () {
+        var pid = $(this).data('parent');
+        if (pid) {
+            var all  = $('#kids-' + pid + ' .chk-leaf').length;
+            var chkd = $('#kids-' + pid + ' .chk-leaf:checked').length;
+            var g    = $('.chk-group[data-group="' + pid + '"]')[0];
+            if (g) {
+                g.checked       = chkd === all;
+                g.indeterminate = chkd > 0 && chkd < all;
+            }
+        }
+        updateCount();
+    });
+
+    function updateCount() {
+        var n = $('#menuTree .chk-leaf:checked').length;
+        var t = $('#menuTree .chk-leaf').length;
+        $('#selCount').text(n + ' / ' + t + ' selected');
+        if (n === 0) $('#warnBox').removeClass('d-none').show();
+        else         $('#warnBox').addClass('d-none').hide();
+    }
+
+    // ── Save ──────────────────────────────────────────────────────
+    $('#btnSave').on('click', function () {
+        if (!currentRoleId) return;
+
+        var ids = [];
+        $('#menuTree .chk-leaf:checked').each(function () {
+            ids.push(parseInt($(this).data('id'), 10));
+        });
+
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving…');
+        hideAlerts();
+
+        $.ajax({
+            url        : '/HR/MenuManagement/SaveRoleMenuAssignment',
+            type       : 'POST',
+            contentType: 'application/json',
+            headers    : { 'RequestVerificationToken': TOKEN },
+            data       : JSON.stringify({ roleId: currentRoleId, menuItemIds: ids }),
+            success    : function (res) {
+                resetBtn($btn);
+                if (res.success) {
+                    showOk(res.message);
+                    // Reload tree to refresh isRestricted badges; keep role selected
+                    loadMenu(currentRoleId, currentRoleName);
+                } else {
+                    showErr(res.message || 'Save failed.');
+                }
+            },
+            error: function (xhr) {
+                resetBtn($btn);
+                showErr('Server error (' + xhr.status + '). Please retry.');
+            }
+        });
+    });
+
+    function resetBtn($btn) {
+        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Save Changes');
+    }
+
+    function showOk(msg)  { $('#saveAlertMsg').text(msg); $('#saveAlert').removeClass('d-none'); }
+    function showErr(msg) { $('#errAlertMsg').text(msg);  $('#errAlert').removeClass('d-none'); }
+    function hideAlerts() { $('#saveAlert, #errAlert').addClass('d-none'); }
+
+});
+</script>
+}

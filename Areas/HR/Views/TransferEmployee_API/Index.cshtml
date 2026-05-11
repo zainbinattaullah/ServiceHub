@@ -123,9 +123,7 @@
                          if (data.nextCheckInMs) {
                              var mins = Math.floor(data.nextCheckInMs / 60000);
                              var secs = Math.floor((data.nextCheckInMs % 60000) / 1000);
-                             var msg = data.isOpen
-                                 ? `Window closes in ${mins}m ${secs}s`
-                                 : `Next window opens in ${mins}m ${secs}s`;
+                             var msg = data.isOpen ? `Window closes in ${mins}m ${secs}s` : `Next window opens in ${mins}m ${secs}s`;
 
                              $("#nextWindowChange").text(msg);
 
@@ -135,34 +133,10 @@
                          }
                      });
                  }
-                function displayTransferWindows() {
-                   $.get("/HR/TransferEmployee_API/GetTransferWindows", function(windows) {
-                       var html = "<h5>Transfer Schedule:</h5><ul class='list-group'>";
-                       console.log(windows);
-                       windows.forEach(w => {
-                           var currentClass = w.isCurrent ? "list-group-item-success" : "";
-                            console.log(w.Start);
-                            console.log(w.end);
-                           html += `
-                               <li class="list-group-item ${currentClass}">
-                                   ${w.start} to ${w.end}
-                                   ${w.isCurrent ? "<span class='badge bg-primary'>Current</span>" : ""}
-                               </li>`;
-                       });
-
-                       html += "</ul>";
-                       $("#transferWindowsList").html(html);
-                   }).fail(function() {
-                       $("#transferWindowsList").html("<div class='alert alert-danger'>Failed to load schedule</div>");
-                   });
-                 }
-
 
         $(document).ready(function () { 
              // Initial check
             checkTransferWindow();
-            displayTransferWindows();
-
             // Initialize Select2 on dropdowns with multiple selection
             $("#machineIPs").select2({
                 placeholder: "-- Select Source Machine IP --",
@@ -179,12 +153,22 @@
                 multiple: true
             });
 
-            // Load machine IPs into the dropdowns
+            // Load machine IPs into the dropdowns with real-time online/offline status
             $.get("/HR/TransferEmployee_API/GetMachineIPs", function (data) {
-                data.forEach(function (ip) {
-                    $("#machineIPs").append(`<option value="${ip.value}">${ip.label}</option>`);
-                    $("#destinationIP").append(`<option value="${ip.value}">${ip.label}</option>`);
+                data.forEach(function (machine) {
+                    var opt = $("<option>", {
+                        value: machine.value,
+                        text:  machine.label
+                    });
+                    if (!machine.isOnline) {
+                        opt.prop("disabled", true);
+                        opt.css("color", "#999");
+                    }
+                    $("#machineIPs").append(opt.clone());
+                    $("#destinationIP").append(opt.clone());
                 });
+                $("#machineIPs").trigger("change.select2");
+                $("#destinationIP").trigger("change.select2");
             });
 
             // Update selected items display when selections change
@@ -264,10 +248,13 @@
                 data: JSON.stringify([selectedIP]),
                 success: function (employees) {
                     // Ensure employees array is valid
-                    if (!Array.isArray(employees) || employees.length === 0) {
-                        alert("No employees found.");
+                        if (!Array.isArray(employees) || employees.length === 0) {
+                        alert("No employees found against this machine.");
                         return;
-                    }
+                        }
+                        alert(employees.length + " employee(s) fetched successfully against this machine.");
+
+
                     // Clear and populate the dropdown
                     $("#employeeDropdown").empty();
                     $("#employeeDropdown").append('<option value="">-- Select Employee --</option>');
@@ -289,8 +276,7 @@
                     $("#employeeDropdown").trigger("change");
                 },
                 error: function (xhr, status, error) {
-                    alert("Failed to fetch employees: " + error);
-                    // console.error("Error details:", xhr, status, error);
+                    alert("Error fetching employees: " + (xhr.responseText || error));
                 }
             });
         });
@@ -377,7 +363,9 @@
                         type: "GET",
                         async: false,
                         success: function (response) {
-                            destinationIPs = response.filter(ip => ip !== sourceIP); // Exclude source IP
+                            destinationIPs = response
+                                .filter(m => m.value !== sourceIP && m.isOnline)
+                                .map(m => m.value);
                         },
                         error: function (xhr, status, error) {
                             alert("Failed to fetch machine IPs: " + error);
@@ -456,9 +444,10 @@
             $("#transferAllMachines").change(function () {
                 var sourceIP = $("#machineIPs").val(); // Get selected source IP
                 if ($(this).is(":checked")) {
-                     // Loop through each option and select only if it doesn't match the source IP
+                     // Select only online machines that are not the source
                          $("#destinationIP > option").each(function () {
-                             if ($(this).val() !== sourceIP && $(this).val() !== "") {
+                             var isDisabled = $(this).prop("disabled");
+                             if ($(this).val() !== sourceIP && $(this).val() !== "" && !isDisabled) {
                                  $(this).prop("selected", true);
                              } else {
                                  $(this).prop("selected", false);

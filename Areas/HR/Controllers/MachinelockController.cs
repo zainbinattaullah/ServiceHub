@@ -37,9 +37,9 @@ namespace ServiceHub.Areas.HR.Controllers
                         StoreName = s.StoreName
                     }).OrderBy(s => s.StoreName).ToListAsync(),
 
-                Areas = await _db.Stores.Where(s => s.Area != null).Select(s => s.Area).Distinct().OrderBy(a => a).ToListAsync(),
+                Areas = await _db.Stores.Where(s => s.Area != null).Select(s => s.Area!.Name).Distinct().OrderBy(a => a).ToListAsync(),
 
-                Regions = await _db.Stores.Where(s => s.Region != null).Select(s => s.Region).Distinct().OrderBy(r => r).ToListAsync()
+                Regions = await _db.Stores.Where(s => s.Region != null).Select(s => s.Region!.Name).Distinct().OrderBy(r => r).ToListAsync()
             };
             return View(vm);
         }
@@ -278,9 +278,8 @@ namespace ServiceHub.Areas.HR.Controllers
                     Port = m.Port,
                     Location = m.Location,
                     StoreName = store?.StoreName,
-                    Area = store?.Area,
-                    Region = store?.Region,
-                    Department = store?.Department,
+                    Area = store?.Area?.Name,
+                    Region = store?.Region?.Name,
                     LockStatus = lockStatus,
                     ConnectivityStatus = online ? "Online" : "Offline",
                     LastCommunication = lastComm,

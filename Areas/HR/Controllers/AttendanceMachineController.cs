@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ServiceHub.Areas.HR.Models;
 using ServiceHub.Data;
@@ -16,7 +17,6 @@ namespace ServiceHub.Areas.HR.Controllers
         private readonly ServiceHubContext _dbcontext;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<AttendanceMachineController> _logger;
-
         public AttendanceMachineController(ServiceHubContext context,
             IHttpClientFactory httpClientFactory,
             ILogger<AttendanceMachineController> logger)
@@ -42,27 +42,15 @@ namespace ServiceHub.Areas.HR.Controllers
             var searchValue = request["search[value]"].FirstOrDefault();
             var sortColumn = request["columns[" + request["order[0][column]"].FirstOrDefault() + "][name]"].FirstOrDefault();
             var sortDirection = request["order[0][dir]"].FirstOrDefault();
-
             int pageSize = length != null ? Convert.ToInt32(length) : 10;
             int skip = start != null ? Convert.ToInt32(start) : 0;
-
             // Query data from the database
             var query = _dbcontext.AttendenceMachines.AsQueryable();
-
             // Apply search filter
             if (!string.IsNullOrEmpty(searchValue))
             {
                 var search = searchValue.ToLower();
-
-                query = query.Where(m =>
-                    m.Name.Contains(searchValue) ||
-                    m.IpAddress.Contains(searchValue) ||
-                    (m.Description ?? "").Contains(searchValue) ||
-                    (m.Location ?? "").Contains(searchValue) ||
-                    (search == "yes" && m.IsActive) ||
-                    (search == "no" && !m.IsActive) ||
-                    (search == "all" && m.IsFetchAll) ||
-                    (search == "latest" && !m.IsFetchAll)
+                query = query.Where(m => m.Name.Contains(searchValue) || m.IpAddress.Contains(searchValue) || (m.Description ?? "").Contains(searchValue) ||(m.Location ?? "").Contains(searchValue) || (search == "yes" && m.IsActive) ||  (search == "no" && !m.IsActive) || (search == "all" && m.IsFetchAll) || (search == "latest" && !m.IsFetchAll)
                 );
             }
 
@@ -97,8 +85,6 @@ namespace ServiceHub.Areas.HR.Controllers
 
             // Get total records count
             int totalRecords = await query.CountAsync();
-
-
             // Paginate data
             var data = await query
                 .Skip(skip)
@@ -115,7 +101,6 @@ namespace ServiceHub.Areas.HR.Controllers
                     isFetchAll = m.IsFetchAll
                 })
                 .ToListAsync();
-
             // Return JSON response
             return Json(new
             {
@@ -125,23 +110,24 @@ namespace ServiceHub.Areas.HR.Controllers
                 data = data
             });
         }
-
-        public IActionResult Create()
+        private async Task PopulateStoreDropdown(int? selectedStoreId = null)
         {
+            ViewBag.Stores = new SelectList(await _dbcontext.Stores.Where(s => s.IsActive).OrderBy(s => s.StoreName).ToListAsync(), "Id", "StoreName", selectedStoreId);
+        }
+        public async Task<IActionResult> Create()
+        {
+            await PopulateStoreDropdown();
             return View();
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
-        {           
-
+        public async Task<IActionResult> Create([Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
+        {   
             // Guard against null model binding
             if (attendanceMachine == null)
             {
                 return BadRequest();
             }
-
             if (ModelState.IsValid)
             {
                 if (attendanceMachine.Port < 1 || attendanceMachine.Port > 65535)
@@ -150,15 +136,13 @@ namespace ServiceHub.Areas.HR.Controllers
                     return View(attendanceMachine);
                 }
                 attendanceMachine.CreatedAt = DateTime.UtcNow;
-                attendanceMachine.IsActive = attendanceMachine.IsActive; 
-                attendanceMachine.IsFetchAll = attendanceMachine.IsFetchAll;
                 _dbcontext.AttendenceMachines.Add(attendanceMachine);
                 await _dbcontext.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            await PopulateStoreDropdown(attendanceMachine.StoreId);
             return View(attendanceMachine);
         }
-
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -170,19 +154,19 @@ namespace ServiceHub.Areas.HR.Controllers
             {
                 return NotFound();
             }
+            await PopulateStoreDropdown(attendanceMachine.StoreId);
             return View(attendanceMachine);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
         {
             // Guard against null model binding
             if (attendanceMachine == null)
             {
                 return NotFound();
             }
-
             if (id != attendanceMachine.Id)
             {
                 return NotFound();
@@ -196,8 +180,6 @@ namespace ServiceHub.Areas.HR.Controllers
                         ModelState.AddModelError("Port", "Port must be between 1 and 65535.");
                         return View(attendanceMachine);
                     }
-                    attendanceMachine.IsActive = attendanceMachine.IsActive;
-                    attendanceMachine.IsFetchAll = attendanceMachine.IsFetchAll;
                     attendanceMachine.LastUpdated = DateTime.UtcNow;
                     _dbcontext.Update(attendanceMachine);
                     await _dbcontext.SaveChangesAsync();
@@ -215,15 +197,13 @@ namespace ServiceHub.Areas.HR.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+            await PopulateStoreDropdown(attendanceMachine.StoreId);
             return View(attendanceMachine);
         }
-
         private bool AttendanceMachineExists(int id)
         {
             return _dbcontext.AttendenceMachines.Any(e => e.Id == id);
         }
-
-
         // ---------------------------------------------------------------
         //  BULK FORMAT MACHINES  (Admin only)
         // ---------------------------------------------------------------
@@ -236,36 +216,28 @@ namespace ServiceHub.Areas.HR.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             var userName = User.Identity?.Name ?? "";
-
             var results = new List<object>();
-
             foreach (var item in request.Machines)
             {
                 if (string.IsNullOrWhiteSpace(item.MachineIP))
                     continue;
-
                 var machine = await _dbcontext.AttendenceMachines
                     .FirstOrDefaultAsync(m => m.IpAddress == item.MachineIP);
-
                 string machineName = machine?.Name ?? item.MachineIP;
                 bool success = false;
                 string message = "";
-
                 try
                 {
                     var client = _httpClientFactory.CreateClient("EmployeeApi");
                     var payload = new { MachineIP = item.MachineIP, UserId = userId, UserName = userName };
-
                     HttpResponseMessage response;
                     string responseBody;
-
                     try
                     {
                         response = await client.PostAsJsonAsync("api/format", payload);
                         responseBody = await response.Content.ReadAsStringAsync();
                         success = response.IsSuccessStatusCode;
                         message = responseBody;
-
                         try
                         {
                             using var doc = System.Text.Json.JsonDocument.Parse(responseBody ?? "{}");
@@ -281,7 +253,6 @@ namespace ServiceHub.Areas.HR.Controllers
                         success = false;
                         message = $"Windows service unreachable: {httpEx.Message}";
                     }
-
                     // Audit log
                     if (machine != null)
                     {
@@ -308,18 +279,13 @@ namespace ServiceHub.Areas.HR.Controllers
 
                 results.Add(new { machineIP = item.MachineIP, machineName, success, message });
             }
-
             await _dbcontext.SaveChangesAsync();
-
             return Json(new { results });
         }
-
         public class BulkFormatRequest
         {
             public List<FormatMachineApiRequest> Machines { get; set; } = new();
         }
-
-
 
         // ---------------------------------------------------------------
         //  FORMAT MACHINE  (Admin only)
@@ -420,7 +386,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 return StatusCode(500, new { success = false, message = "Internal error." });
             }
         }
-
         // ---------------------------------------------------------------
         //  FORMAT LOGS  (Admin only)
         // ---------------------------------------------------------------
@@ -441,10 +406,8 @@ namespace ServiceHub.Areas.HR.Controllers
                     requestedAt = l.RequestedAt.ToString("yyyy-MM-dd HH:mm:ss")
                 })
                 .ToListAsync();
-
             return Json(logs);
         }
-
         public class FormatMachineApiRequest
         {
             public string MachineIP { get; set; }

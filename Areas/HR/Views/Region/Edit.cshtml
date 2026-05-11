@@ -1,0 +1,28 @@
+@model ServiceHub.Areas.HR.Models.Region
+
+@{
+    ViewData["Title"] = "Edit Region";
+    ViewData["PageIcon"] = "fas fa-globe";
+}
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><strong>Edit Region</strong></div>
+            <div class="card-body">
+                @using (Html.BeginForm("Edit", "Region", new { area = "HR", id = Model.Id }, FormMethod.Post, null, new { @class = "mt-2" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(m => m.Id)
+                    @Html.HiddenFor(m => m.CreatedAt)
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+                    @await Html.PartialAsync("_Form", Model)
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

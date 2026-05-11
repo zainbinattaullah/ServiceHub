@@ -27,7 +27,7 @@
         padding: 18px 24px;
         margin-bottom: 20px;
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         gap: 16px;
         color: #fff;
     }
@@ -100,10 +100,12 @@
     .badge-never    { background: #f1f3f5; color: #868e96;
         padding: 3px 10px; border-radius: 20px; font-size: 11px; }
 
-    .badge-online  { background: var(--success-bg); color: #138a4a;
+    .badge-online    { background: var(--success-bg); color: #138a4a;
         padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge-offline { background: var(--failed-bg); color: #b91c30;
+    .badge-offline   { background: var(--failed-bg); color: #b91c30;
         padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-checking  { background: #f1f3f5; color: #868e96;
+        padding: 3px 9px; border-radius: 20px; font-size: 11px; }
 
     .badge-auto   { background: #e8eef8; color: var(--navy);
         padding: 2px 7px; border-radius: 10px; font-size: 10px; }
@@ -151,10 +153,14 @@
     .row-success td { background: #f0fdf4 !important; transition: background 1s; }
     .row-failed  td { background: #fff5f5 !important; transition: background 1s; }
 
-    .hist-table th { background: #1e3a5f; color:#fff; font-size:12px; }
-    .hist-table td { font-size:12px; }
+    .hist-table th { background: #1e3a5f; color:#fff; font-size:11px; white-space:nowrap; }
+    .hist-table td { font-size:11px; vertical-align:middle; }
+    .hist-table td.nowrap { white-space:nowrap; }
+    .hist-table td.wrap   { white-space:normal; word-break:break-word; max-width:160px; }
 
-    @@media (max-width: 992px) { .monitor-panel { grid-template-columns: repeat(3,1fr); } }
+    .mp-value.c-online  { color: #20c763; }
+    .mp-value.c-offline { color: #ff6b6b; }
+    @@media (max-width: 992px) { .monitor-panel { grid-template-columns: repeat(4,1fr); } }
     @@media (max-width: 576px) { .monitor-panel { grid-template-columns: repeat(2,1fr); } }
 </style>
 
@@ -164,7 +170,15 @@
     <div class="monitor-panel">
         <div class="mp-stat">
             <div class="mp-label">Total Machines</div>
-            <div class="mp-value c-total"  id="mpTotal">--</div>
+            <div class="mp-value c-total"   id="mpTotal">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label"><span class="dot-pulse"></span>Online</div>
+            <div class="mp-value c-online"  id="mpOnline">--</div>
+        </div>
+        <div class="mp-stat">
+            <div class="mp-label">Offline</div>
+            <div class="mp-value c-offline" id="mpOffline">--</div>
         </div>
         <div class="mp-stat">
             <div class="mp-label">Sync Completed</div>
@@ -281,8 +295,14 @@
             <h5><i class="fas fa-sync-alt" style="margin-right:8px;"></i>Machine Force Sync Dashboard</h5>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <span style="font-size:11px;color:rgba(255,255,255,.7);">
-                    <span class="dot-pulse"></span>Auto-refresh 30s
+                    <span class="dot-pulse"></span>Ping every 1 hr
                 </span>
+                <button class="btn-refresh" id="btnExportExcel" title="Export filtered rows to Excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button class="btn-refresh" id="btnExportPdf" title="Export filtered rows to PDF">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
                 <button class="btn-refresh" id="btnRefresh">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
@@ -345,14 +365,14 @@
 
 <!-- History Modal -->
 <div class="modal fade" id="historyModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background:var(--navy);color:#fff;">
+            <div class="modal-header" style="background:var(--navy);color:#fff;padding:10px 16px;">
                 <h5 class="modal-title"><i class="fas fa-history me-2"></i>Sync History</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" style="padding:0;">
-                <div id="historyContent" style="padding:16px;">
+            <div class="modal-body" style="padding:0;overflow-x:auto;">
+                <div id="historyContent" style="padding:12px;">
                     <div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i></div>
                 </div>
             </div>
@@ -372,6 +392,10 @@
 
 @section Scripts {
 <script src="~/js/select2.js"></script>
+<script src="~/cust_theme_comp/js/jszip.min.js"></script>
+<script src="~/cust_theme_comp/js/pdfmake.min.js"></script>
+<script src="~/cust_theme_comp/js/vfs_fonts.js"></script>
+<script src="~/cust_theme_comp/js/buttons.html5.min.js"></script>
 <script>
 $(function () {
 
@@ -390,7 +414,9 @@ $(function () {
     var pendingPoll       = {};       // { logId: machineId } — live polling
     var pollTimer         = null;
     var confirmMachineIds = [];
-    var autoRefreshTimer  = null;
+    var pingCache         = {};       // { machineId: true/false } — latest ping result per machine
+    var pingTimer         = null;
+    var pingDone          = false;    // true after every machine in current cycle is done
 
     // Bulk group data for populating select
     var areaMap   = {};
@@ -424,8 +450,12 @@ $(function () {
         return '<span class="badge-never">Never</span>';
     }
 
-    function renderConn(isOnline) {
-        return isOnline
+    function renderConn(row) {
+        // Show per-machine status as soon as its ping resolves.
+        // pingCache is populated machine by machine — no need to wait for all.
+        if (!pingCache.hasOwnProperty(row.machineId))
+            return '<span class="badge-checking"><i class="fas fa-circle-notch fa-spin me-1"></i>Checking...</span>';
+        return pingCache[row.machineId]
             ? '<span class="badge-online"><span class="dot-pulse"></span>Online</span>'
             : '<span class="badge-offline"><i class="fas fa-times-circle me-1"></i>Offline</span>';
     }
@@ -438,11 +468,14 @@ $(function () {
 
     function renderActions(row) {
         var disabled = row.hasPending ? 'disabled' : '';
+        var tip      = row.hasPending ? 'Sync already queued' : 'Force fetch attendance from this machine';
         var syncBtn  = '<button class="btn-sync me-1" ' + disabled
+            + ' title="' + tip + '" data-bs-toggle="tooltip" data-bs-placement="top"'
             + ' onclick="singleSync(' + row.machineId + ',\'' + esc(row.machineName) + '\')">'
             + '<i class="fas fa-sync-alt"></i> Sync</button>';
-        var histBtn  = '<button class="btn-history" onclick="showHistory(' + row.machineId
-            + ',\'' + esc(row.machineName) + '\')">'
+        var histBtn  = '<button class="btn-history" title="View sync history for ' + esc(row.machineName) + '"'
+            + ' data-bs-toggle="tooltip" data-bs-placement="top"'
+            + ' onclick="showHistory(' + row.machineId + ',\'' + esc(row.machineName) + '\')">'
             + '<i class="fas fa-history"></i></button>';
         return syncBtn + histBtn;
     }
@@ -456,68 +489,124 @@ $(function () {
     function esc(s) { return (s||'').replace(/'/g,"\\'"); }
 
     // ----------------------------------------------------------------
-    //  DataTable
+    //  Client-side filter (registered once, runs on every table.draw())
+    //  Connectivity uses pingCache directly — never stale after reload.
+    // ----------------------------------------------------------------
+    $.fn.DataTable.ext.search.push(function (settings, _data, _idx, row) {
+        if (!settings.nTable || settings.nTable.id !== 'syncTable') return true;
+        if (!row) return true;
+
+        var fRegion = $('#fRegion').val() || '';
+        var fArea   = $('#fArea').val()   || '';
+        var fLoc    = $('#fLoc').val()    || '';
+        var fMach   = ($('#fMachine').val() || '').toLowerCase().trim();
+        var fConn   = $('#fConn').val()   || '';
+        var fStatus = $('#fStatus').val() || '';
+
+        if (fRegion && (row.region   || '') !== fRegion) return false;
+        if (fArea   && (row.area     || '') !== fArea)   return false;
+        if (fLoc    && (row.location || '') !== fLoc)    return false;
+
+        // Connectivity: read live pingCache so filter is always accurate
+        // regardless of whether row.connectivityStatus has been updated yet.
+        if (fConn) {
+            var liveConn = pingCache.hasOwnProperty(row.machineId)
+                ? (pingCache[row.machineId] ? 'Online' : 'Offline')
+                : (row.connectivityStatus || '');
+            if (liveConn !== fConn) return false;
+        }
+
+        if (fStatus) {
+            var effectiveSt = row.hasPending
+                ? (row.pendingStatus === 'InProgress' ? 'InProgress' : 'Pending')
+                : (row.lastSyncStatus || '');
+            if (effectiveSt !== fStatus) return false;
+        }
+
+        if (fMach) {
+            var inName = (row.machineName || '').toLowerCase().includes(fMach);
+            var inIP   = (row.machineIP   || '').toLowerCase().includes(fMach);
+            var inId   = String(row.machineId || '') === fMach;
+            if (!inName && !inIP && !inId) return false;
+        }
+        return true;
+    });
+
+    // ----------------------------------------------------------------
+    //  DataTable — client-side (all rows loaded once, pages instantly)
     // ----------------------------------------------------------------
     var table = $('#syncTable').DataTable({
         processing : true,
-        serverSide : true,
+        serverSide : false,   // client-side: no server call on page change
         ajax: {
-            url  : '/HR/ForceSync/GetDashboardData',
-            type : 'POST',
-            data : function (d) {
-                d.filterRegion   = $('#fRegion').val();
-                d.filterArea     = $('#fArea').val();
-                d.filterLocation = $('#fLoc').val();
-                d.filterMachine  = $('#fMachine').val();
-                d.filterConn     = $('#fConn').val();
-                d.filterStatus   = $('#fStatus').val();
-                return d;
-            },
+            url    : '/HR/ForceSync/GetDashboardData',
+            type   : 'POST',
             dataSrc: function (json) {
+                if (json.error) {
+                    console.error('GetDashboardData error:', json.error);
+                    showToast('Dashboard error: ' + json.error, 'danger');
+                }
+
                 var rows = json.data || [];
                 var s    = json.stats || {};
 
-                // Update monitor panel
-                animCount('mpTotal',      json.recordsTotal || 0);
+                // Monitor panel
+                animCount('mpTotal',      rows.length);
                 animCount('mpCompleted',  s.completed   || 0);
                 animCount('mpInProgress', s.inProgress  || 0);
                 animCount('mpFailed',     s.failed      || 0);
                 animCount('mpPending',    s.pending     || 0);
 
-                // Build lookup maps for group sync selects
+                // Build group-sync lookup maps
                 areaMap = {}; regionMap = {}; branchMap = {};
                 rows.forEach(function (r) {
-                    if (r.area)      { if (!areaMap[r.area])         areaMap[r.area]         = []; areaMap[r.area].push(r.machineId); }
-                    if (r.region)    { if (!regionMap[r.region])     regionMap[r.region]     = []; regionMap[r.region].push(r.machineId); }
-                    if (r.location)  { if (!branchMap[r.location])   branchMap[r.location]   = []; branchMap[r.location].push(r.machineId); }
+                    if (r.area)     { areaMap[r.area]       = areaMap[r.area]       || []; areaMap[r.area].push(r.machineId); }
+                    if (r.region)   { regionMap[r.region]   = regionMap[r.region]   || []; regionMap[r.region].push(r.machineId); }
+                    if (r.location) { branchMap[r.location] = branchMap[r.location] || []; branchMap[r.location].push(r.machineId); }
                 });
 
                 return rows;
-            },
-            error: function (xhr, err) { console.error('ForceSync AJAX:', err); }
+            }
         },
         columns: [
             { data: null, orderable: false,
               render: function (d, t, row) { return renderChk(row); }, width: '36px' },
             { data: 'machineName', defaultContent: '',
               render: function (d, t, row) {
+                if (t === 'export') return (row.machineName || '') + ' (' + (row.machineIP || '') + ')';
                 return '<strong>' + (d||'') + '</strong><br>'
                      + '<small style="color:#6b7a94;">' + (row.machineIP||'') + '</small>';
               }},
             { data: 'storeName', defaultContent: 'N/A',
               render: function (d, t, row) {
+                if (t === 'export') return (d || 'N/A') + (row.location ? ' (' + row.location + ')' : '');
                 return (d||'N/A') + (row.location
                     ? '<br><small style="color:#6b7a94;">' + row.location + '</small>' : '');
               }},
             { data: 'area',   defaultContent: '—' },
             { data: 'region', defaultContent: '—' },
-            { data: 'isOnline', orderable: false,
-              render: function (d) { return renderConn(d); }},
+            { data: 'connectivityStatus', orderable: true,
+              render: function (d, t, row) {
+                if (t === 'export') {
+                    if (!pingCache.hasOwnProperty(row.machineId)) return row.connectivityStatus || '—';
+                    return pingCache[row.machineId] ? 'Online' : 'Offline';
+                }
+                return renderConn(row);
+              }},
             { data: 'lastSyncLabel', defaultContent: 'Never' },
             { data: null, orderable: false,
-              render: function (d, t, row) { return renderStatus(row); }},
+              render: function (d, t, row) {
+                if (t === 'export') {
+                    if (row.hasPending) return row.pendingStatus === 'InProgress' ? 'In Progress' : 'Pending';
+                    return row.lastSyncStatus || 'Never';
+                }
+                return renderStatus(row);
+              }},
             { data: 'lastSyncType', defaultContent: '—',
-              render: function (d) { return renderType(d); }},
+              render: function (d, t) {
+                if (t === 'export') return d || '—';
+                return renderType(d);
+              }},
             { data: 'lastSyncDurationLabel', defaultContent: '—', className: 'text-center' },
             { data: 'lastRecordsFetched',    defaultContent: '0', className: 'text-center' },
             { data: null, orderable: false,
@@ -529,10 +618,71 @@ $(function () {
         dom: '<"row"<"col-sm-4"l><"col-sm-8"f>>'
            + '<"row"<"col-sm-12"tr>>'
            + '<"row"<"col-sm-5"i><"col-sm-7"p>>',
+        buttons: [
+            {
+                extend        : 'excelHtml5',
+                className     : 'dt-export-btn',
+                title         : 'Force Sync Dashboard',
+                filename      : 'ForceSyncDashboard',
+                sheetName     : 'Machines',
+                exportOptions : {
+                    columns  : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    modifier : { search: 'applied' },
+                    orthogonal: 'export'
+                },
+                customize: function (xlsx) {
+                    // Bold the header row
+                    var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                    $('row:first c', sheet).attr('s', '42');
+                }
+            },
+            {
+                extend        : 'pdfHtml5',
+                className     : 'dt-export-btn',
+                title         : 'Force Sync Dashboard',
+                filename      : 'ForceSyncDashboard',
+                orientation   : 'landscape',
+                pageSize      : 'A4',
+                exportOptions : {
+                    columns  : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    modifier : { search: 'applied' },
+                    orthogonal: 'export'
+                },
+                customize: function (doc) {
+                    doc.defaultStyle.fontSize  = 8;
+                    doc.styles.tableHeader.fontSize = 9;
+                    doc.styles.tableHeader.fillColor = '#1e3a5f';
+                    doc.styles.tableHeader.color     = '#ffffff';
+                    doc.content[1].table.widths =
+                        ['*', '*', '*', '*', '*', '*', '*', '*', '*', '*'];
+                }
+            }
+        ],
         language: {
             processing : '<i class="fas fa-spinner fa-spin"></i> Loading...',
             emptyTable : 'No machines found.'
+        },
+        drawCallback: function () {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                bootstrap.Tooltip.getOrCreateInstance(el, { trigger: 'hover' });
+            });
+        },
+        initComplete: function () {
+            // Hide DataTables' own button container — we use our own header buttons
+            this.api().buttons().container().hide();
+            startRowByRowPing();
         }
+    });
+
+    // ----------------------------------------------------------------
+    //  Export buttons — trigger DataTables Buttons by index
+    //  Exports only rows visible after current filter is applied.
+    // ----------------------------------------------------------------
+    $('#btnExportExcel').on('click', function () {
+        table.button(0).trigger();
+    });
+    $('#btnExportPdf').on('click', function () {
+        table.button(1).trigger();
     });
 
     // ----------------------------------------------------------------
@@ -680,8 +830,8 @@ $(function () {
                         delete pendingPoll[s.id];
                     }
                 });
-                // Reload table to update status badges
-                table.ajax.reload(null, false);
+                // Reload table to update status badges, keep ping results
+                table.ajax.reload(function () { applyPingCache(); }, false);
                 // Stop polling when all done
                 if (Object.keys(pendingPoll).length === 0) {
                     clearInterval(pollTimer);
@@ -704,9 +854,18 @@ $(function () {
                 $('#historyContent').html('<div class="text-center text-muted py-3">No history found.</div>');
                 return;
             }
-            var html = '<table class="table table-sm table-striped table-bordered hist-table mb-0">'
-                     + '<thead><tr><th>Type</th><th>Status</th><th>Requested</th>'
-                     + '<th>Completed</th><th>Records</th><th>Duration</th><th>By</th><th>Notes</th></tr></thead><tbody>';
+            var html = '<div style="overflow-x:auto;">'
+                     + '<table class="table table-sm table-striped table-bordered hist-table mb-0" style="min-width:820px;">'
+                     + '<thead><tr>'
+                     + '<th style="width:60px;">Type</th>'
+                     + '<th style="width:90px;">Status</th>'
+                     + '<th style="width:130px;">Requested</th>'
+                     + '<th style="width:130px;">Completed</th>'
+                     + '<th style="width:60px;text-align:center;">Rec.</th>'
+                     + '<th style="width:70px;text-align:center;">Dur.</th>'
+                     + '<th style="width:110px;">By</th>'
+                     + '<th>Error / Notes</th>'
+                     + '</tr></thead><tbody>';
             logs.forEach(function (l) {
                 var stBadge = l.status === 'Success'
                     ? '<span class="badge-success">Success</span>'
@@ -716,46 +875,124 @@ $(function () {
                 var dur = l.durationSeconds != null
                     ? (l.durationSeconds < 60 ? l.durationSeconds + 's' : Math.floor(l.durationSeconds/60) + 'm ' + (l.durationSeconds%60) + 's')
                     : '—';
+                var detail = '';
+                if (l.errorMessage) detail += '<span class="text-danger">' + l.errorMessage + '</span>';
+                if (l.notes)        detail += (detail ? '<br>' : '') + '<span class="text-muted">' + l.notes + '</span>';
                 html += '<tr>'
-                      + '<td>' + (l.syncType === 'Manual' ? '<span class="badge-manual">Manual</span>' : '<span class="badge-auto">Auto</span>') + '</td>'
-                      + '<td>' + stBadge + (l.errorMessage ? '<br><small class="text-danger">' + l.errorMessage + '</small>' : '') + '</td>'
-                      + '<td>' + l.requestedAt + '</td>'
-                      + '<td>' + l.completedAt + '</td>'
-                      + '<td class="text-center">' + (l.recordsFetched || 0) + '</td>'
-                      + '<td class="text-center">' + dur + '</td>'
-                      + '<td>' + (l.requestedByUserName || '—') + '</td>'
-                      + '<td>' + (l.notes || '—') + '</td>'
+                      + '<td class="nowrap">' + (l.syncType === 'Manual' ? '<span class="badge-manual">Manual</span>' : '<span class="badge-auto">Auto</span>') + '</td>'
+                      + '<td class="nowrap">' + stBadge + '</td>'
+                      + '<td class="nowrap">' + l.requestedAt + '</td>'
+                      + '<td class="nowrap">' + l.completedAt + '</td>'
+                      + '<td class="text-center nowrap">' + (l.recordsFetched != null ? l.recordsFetched : 0) + '</td>'
+                      + '<td class="text-center nowrap">' + dur + '</td>'
+                      + '<td class="nowrap">' + (l.requestedByUserName || '—') + '</td>'
+                      + '<td class="wrap">' + (detail || '—') + '</td>'
                       + '</tr>';
             });
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             $('#historyContent').html(html);
         });
     };
 
     // ----------------------------------------------------------------
-    //  Filters
+    //  Filters — client-side draw (instant, no server round-trip)
     // ----------------------------------------------------------------
-    $('#btnApply').on('click', function () { table.ajax.reload(); });
+    $('#btnApply').on('click', function () { table.draw(); });
     $('#btnClear').on('click', function () {
         $('#fRegion,#fArea,#fLoc,#fConn,#fStatus').val('').trigger('change');
         $('#fMachine').val('');
-        table.ajax.reload();
+        table.draw();
     });
 
     // ----------------------------------------------------------------
-    //  Refresh button + auto-refresh 30s
+    //  Row-by-row ICMP ping
+    //  Pings each machine individually with up to 5 concurrent requests.
+    //  Each row updates the moment its ping resolves — online machines
+    //  appear green first, offline machines turn red after the 3 s timeout.
+    //  pingGeneration cancels any previous cycle when a new one starts.
+    // ----------------------------------------------------------------
+    var PING_CONCURRENCY = 5;
+    var pingGeneration   = 0;
+
+    function startRowByRowPing() {
+        var gen = ++pingGeneration;   // cancel any previous cycle
+        pingDone  = false;
+        pingCache = {};               // clear old results → all rows revert to "Checking..."
+        animCount('mpOnline',  '…');
+        animCount('mpOffline', '…');
+        table.draw(false);            // redraw: renderConn sees empty cache → "Checking..."
+
+        var machineIds = [];
+        table.rows().every(function () { machineIds.push(this.data().machineId); });
+        if (machineIds.length === 0) { pingDone = true; return; }
+
+        var idx = 0, done = 0, online = 0, offline = 0;
+        var total = machineIds.length;
+
+        function pingOne(mid) {
+            if (gen !== pingGeneration) return;   // newer cycle, abort
+            $.get('/HR/ForceSync/PingMachine?machineId=' + mid)
+                .done(function (r) {
+                    if (gen !== pingGeneration) return;
+                    pingCache[r.machineId] = r.isOnline;
+                    if (r.isOnline) online++; else offline++;
+                    animCount('mpOnline',  online);
+                    animCount('mpOffline', offline);
+                    // Update this row's data then redraw
+                    table.rows().every(function () {
+                        var d = this.data();
+                        if (d.machineId === r.machineId) {
+                            d.isOnline           = r.isOnline;
+                            d.connectivityStatus = r.isOnline ? 'Online' : 'Offline';
+                            this.data(d);
+                        }
+                    });
+                    table.draw(false);
+                })
+                .always(function () {
+                    if (gen !== pingGeneration) return;
+                    done++;
+                    if (done === total) { pingDone = true; table.draw(false); }
+                    if (idx < total) pingOne(machineIds[idx++]);
+                });
+        }
+
+        // Kick off initial concurrent batch
+        var initial = Math.min(PING_CONCURRENCY, total);
+        for (var i = 0; i < initial; i++) pingOne(machineIds[idx++]);
+    }
+
+    // Re-apply cached ping results to rows after a data reload so the
+    // Online/Offline filter is correct immediately (before next ping cycle).
+    function applyPingCache() {
+        if (Object.keys(pingCache).length === 0) return;
+        var changed = false;
+        table.rows().every(function () {
+            var d = this.data();
+            if (pingCache.hasOwnProperty(d.machineId)) {
+                d.isOnline           = pingCache[d.machineId];
+                d.connectivityStatus = pingCache[d.machineId] ? 'Online' : 'Offline';
+                this.data(d);
+                changed = true;
+            }
+        });
+        if (changed) table.draw(false);
+    }
+
+    // Auto-ping every 1 hour. First ping starts via initComplete.
+    pingTimer = setInterval(startRowByRowPing, 3600000);
+
+    // ----------------------------------------------------------------
+    //  Refresh button — reload sync data from server AND re-ping machines
     // ----------------------------------------------------------------
     $('#btnRefresh').on('click', function () {
         var btn = $(this);
         btn.addClass('spinning').prop('disabled', true);
         table.ajax.reload(function () {
             btn.removeClass('spinning').prop('disabled', false);
-        });
+            startRowByRowPing();   // full re-ping on manual refresh
+        }, false);
     });
-
-    autoRefreshTimer = setInterval(function () {
-        table.ajax.reload(null, false);
-    }, 30000);
 
     // ----------------------------------------------------------------
     //  Toast helper

@@ -11,7 +11,6 @@ namespace ServiceHub.Areas.HR.Controllers
     public class AdminDecryptController : Controller
     {
         private static readonly string EncryptionKey = "MySuperSecureKey@123";
-
         public IActionResult Index()
         {
             return View();
@@ -25,7 +24,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 ViewBag.Error = "Please enter an encrypted password.";
                 return View("Index");
             }
-
             try
             {
                 string decrypted = DecryptPassword(encryptedText);
@@ -36,7 +34,6 @@ namespace ServiceHub.Areas.HR.Controllers
             {
                 ViewBag.Error = "Invalid or corrupt encrypted string.";
             }
-
             return View("Index");
         }
 

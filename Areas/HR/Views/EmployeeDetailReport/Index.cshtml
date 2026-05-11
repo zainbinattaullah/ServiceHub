@@ -158,9 +158,16 @@ $(document).ready(function () {
             { data: 'enrollmentDate', render: function(d){ return d || '—'; } },
             {
                 data: 'isActive',
-                render: function(d) {
-                    return d ? '<span class="badge bg-success">Active</span>'
-                             : '<span class="badge bg-danger">Inactive</span>';
+                render: function(d, t, row) {
+                    if (t === 'export') return d ? 'Active' : 'Inactive';
+                    var badge = d ? '<span class="badge bg-success me-1">Active</span>'
+                                  : '<span class="badge bg-danger me-1">Inactive</span>';
+                    var btnCls = d ? 'btn-danger' : 'btn-success';
+                    var btnLbl = d ? '<i class="fas fa-user-slash me-1"></i>Deactivate'
+                                  : '<i class="fas fa-user-check me-1"></i>Activate';
+                    var toggleBtn = '<button class="btn btn-sm ' + btnCls + ' toggle-active-emp" '
+                        + 'data-code="' + (row.empNo || '') + '" data-active="' + d + '">' + btnLbl + '</button>';
+                    return badge + toggleBtn;
                 }
             },
             {
@@ -198,6 +205,38 @@ $(document).ready(function () {
         var sv = table.search();
         window.location.href = '/HR/EmployeeDetailReport/ExportListExcel?search=' + encodeURIComponent(sv || '');
     });
+
+    // Toggle Active / Deactivate from Employee Detail Report
+    $('table').on('click', '.toggle-active-emp', function () {
+        var btn      = $(this);
+        var code     = btn.data('code');
+        var isActive = btn.data('active');
+        var label    = isActive ? 'deactivate' : 'activate';
+        if (!confirm('Are you sure you want to ' + label + ' employee ' + code + '?\nThis will update all ZKTeco machines they are registered on.')) return;
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Processing...');
+
+        $.ajax({
+            url: '/HR/EmployeeDetailReport/ToggleActive',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+            data: JSON.stringify({ employeeCode: code }),
+            success: function (res) {
+                if (res.success) {
+                    table.ajax.reload(null, false);
+                } else {
+                    alert('Failed: ' + (res.message || 'Unknown error'));
+                    btn.prop('disabled', false);
+                }
+            },
+            error: function (xhr) {
+                alert('Server error: ' + xhr.status);
+                btn.prop('disabled', false);
+            }
+        });
+    });
 });
 </script>
+@Html.AntiForgeryToken()
 }

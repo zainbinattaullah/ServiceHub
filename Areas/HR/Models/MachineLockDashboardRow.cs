@@ -12,7 +12,6 @@
         public string StoreName { get; set; }
         public string Area { get; set; }
         public string Region { get; set; }
-        public string Department { get; set; }
 
         // Lock state — derived from latest Success log
         public string LockStatus { get; set; }   // "Locked" | "Unlocked" | "Unknown"

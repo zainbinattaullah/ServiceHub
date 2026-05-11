@@ -219,8 +219,48 @@ a:hover { color: var(--sh-primary-dark); }
 .nav-treeview .nav-item .nav-link { font-size: .9rem; }
 
 /* Nav arrows */
-.nav-arrow { margin-left: auto; font-size: .75rem; transition: transform var(--sh-transition); }
+.nav-arrow { margin-left: auto; font-size: .75rem; transition: transform var(--sh-transition); flex-shrink: 0; }
 .menu-open > a > .nav-arrow { transform: rotate(90deg); }
+
+/* ── Sidebar text: allow wrapping so long names never truncate with … ───
+   AdminLTE forces white-space:nowrap on the <p> inside .nav-link.
+   We override here so names like "Data Synchronization" wrap gracefully.  */
+.sidebar-menu .nav-link > p {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    line-height: 1.35;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+/* When text wraps to a second line, align icon to the top of the text block */
+.sidebar-menu .nav-link {
+    align-items: flex-start !important;
+}
+.sidebar-menu .nav-link .nav-icon {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+/* ── Sidebar scroll containment ─────────────────────────────────────────
+   Make the sidebar a flex column so .sidebar-wrapper fills whatever space
+   remains after the brand, then scrolls internally — expanded menus can
+   never push content under the footer or create white-space below it.   */
+.app-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.sidebar-wrapper {
+    flex: 1 1 0 !important;   /* grow to fill remaining sidebar height */
+    min-height: 0 !important; /* allow flex child to shrink below content size */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Treeview children must not clip mid-animation */
+.nav-treeview {
+    overflow: hidden;
+}
 
 /* =============================================================================
    TOP NAVBAR

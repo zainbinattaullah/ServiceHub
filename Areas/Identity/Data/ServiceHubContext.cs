@@ -24,11 +24,16 @@ public class ServiceHubContext : IdentityDbContext<ApplicationUser>
     public DbSet<MachineFormatLog> MachineFormatLogs { get; set; }
     public DbSet<Employee_Biometric_Log> Employee_Biometric_Log { get; set; }
     public DbSet<Department> Departments { get; set; }
+    public DbSet<Area> Areas { get; set; }
+    public DbSet<Region> Regions { get; set; }
 
     // ── RBAC / Theme Tables ──────────────────────────────────────────────
     public DbSet<MenuItem> MenuItems { get; set; }
     public DbSet<RoleMenuItem> RoleMenuItems { get; set; }
     public DbSet<UserSetting> UserSettings { get; set; }
+
+    // ── Employee device commands ─────────────────────────────────────────
+    public DbSet<EmployeeDeviceCommand> EmployeeDeviceCommands { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -66,6 +71,29 @@ public class ServiceHubContext : IdentityDbContext<ApplicationUser>
         builder.Entity<UserSetting>(b =>
         {
             b.HasIndex(u => u.UserId).IsUnique();
+        });
+
+        // ── Store → Area / Region FKs ────────────────────────────────────
+        builder.Entity<Store>(b =>
+        {
+            b.HasOne(s => s.Area)
+             .WithMany()
+             .HasForeignKey(s => s.AreaId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            b.HasOne(s => s.Region)
+             .WithMany()
+             .HasForeignKey(s => s.RegionId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── AttendanceMachine → Store FK ─────────────────────────────────
+        builder.Entity<AttendanceMachine>(b =>
+        {
+            b.HasOne(m => m.Store)
+             .WithMany()
+             .HasForeignKey(m => m.StoreId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

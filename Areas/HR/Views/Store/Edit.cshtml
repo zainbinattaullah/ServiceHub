@@ -1,0 +1,70 @@
+@model ServiceHub.Areas.HR.Models.Store
+
+@{
+    ViewData["Title"] = "Edit Store";
+    ViewData["PageIcon"] = "fas fa-store";
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <a class="btn btn-sm btn-gradient-success" asp-action="Index">
+                    <i class="fas fa-list me-1"></i> Back to List
+                </a>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit">
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(m => m.Id)
+                    @Html.HiddenFor(m => m.CreatedAt)
+                    @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="StoreCode" class="form-label"></label>
+                            <input asp-for="StoreCode" class="form-control" />
+                            <span asp-validation-for="StoreCode" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StoreName" class="form-label"></label>
+                            <input asp-for="StoreName" class="form-control" />
+                            <span asp-validation-for="StoreName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AreaId" class="form-label">Area</label>
+                            <select asp-for="AreaId" asp-items="ViewBag.Areas" class="form-select">
+                                <option value="">— Select Area —</option>
+                            </select>
+                            <span asp-validation-for="AreaId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="RegionId" class="form-label">Region</label>
+                            <select asp-for="RegionId" asp-items="ViewBag.Regions" class="form-select">
+                                <option value="">— Select Region —</option>
+                            </select>
+                            <span asp-validation-for="RegionId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center pt-4">
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="IsActive" value="false" />
+                                <input type="checkbox" name="IsActive" value="true"
+                                       class="form-check-input" id="IsActive"
+                                       @(Model.IsActive ? "checked" : "") />
+                                <label class="form-check-label" for="IsActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-gradient">
+                                <i class="fas fa-save me-1"></i> Update
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

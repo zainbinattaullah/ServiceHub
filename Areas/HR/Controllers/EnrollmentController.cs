@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ServiceHub.Data;
 using ServiceHub.Areas.HR.Models;
+using System.Security.Claims;
 
 namespace ServiceHub.Areas.HR.Controllers
 {
@@ -113,6 +114,7 @@ namespace ServiceHub.Areas.HR.Controllers
                 createdAt = x.Enrollment.CreatedAt,
                 isSynced = x.Enrollment.IsSynced,
                 syncMessage = x.Enrollment.SyncMessage,
+                isActive = x.Enrollment.IsActive,
                 department = x.Dept != null ? x.Dept.Code + " — " + x.Dept.Name : ""
             }).ToListAsync();
 
@@ -223,20 +225,24 @@ namespace ServiceHub.Areas.HR.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("EmployeeApi");
+                int privilegeLevel = (enroll.Privilege ?? "").ToLower() switch
+                {
+                    "superadmin" => 14,
+                    _ => 0   // "User" and anything else → regular user
+                };
                 var payload = new
                 {
                     EmployeeCode = enroll.EmployeeCode,
                     EmployeeName = enroll.EmployeeName,
                     MachineIP = enroll.MachineIP,
-                    Privilege = enroll.Privilege
+                    Privilege = privilegeLevel
                 };
 
                 HttpResponseMessage response;
                 string responseString = null;
                 try
                 {
-                    // ensure the client BaseAddress is configured (in Program.cs) and the relative path is correct
-                    response = await client.PostAsJsonAsync("api/employee/register", payload);
+                    response = await client.PostAsJsonAsync("api/employees/register/", payload);
                     responseString = await response.Content.ReadAsStringAsync();
                 }
                 catch (Exception httpEx)
@@ -281,6 +287,56 @@ namespace ServiceHub.Areas.HR.Controllers
                 _logger.LogError(ex, "RetrySend failed for enrollment {Id}", id);
                 return StatusCode(500, "Error while sending to service");
             }
+        }
+
+        // ── POST: ToggleActive — flip IsActive for all enrollments of an employee
+        //         and queue a device command so the Windows Service updates ZKTeco.
+        [HttpPost]
+        public async Task<IActionResult> ToggleActive([FromBody] ToggleActiveRequest req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.EmployeeCode))
+                return Json(new { success = false, message = "Employee code required." });
+
+            var enrollments = await _dbContext.EmployeeEnrollments
+                .Where(e => e.EmployeeCode == req.EmployeeCode)
+                .ToListAsync();
+
+            if (!enrollments.Any())
+                return Json(new { success = false, message = "Employee not found." });
+
+            bool newState = !enrollments.Any(e => e.IsActive);
+            string action = newState ? "Activate" : "Deactivate";
+
+            foreach (var e in enrollments)
+                e.IsActive = newState;
+
+            // Mirror in biometric log table
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "UPDATE Employee_Biometric_Log SET IsActive = {0}, LastUpdated = GETDATE() WHERE Emp_No = {1}",
+                newState ? 1 : 0, req.EmployeeCode);
+
+            string userId   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "System";
+            string userName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "System";
+
+            _dbContext.EmployeeDeviceCommands.Add(new EmployeeDeviceCommand
+            {
+                EmployeeCode        = req.EmployeeCode,
+                EmployeeName        = enrollments.First().EmployeeName,
+                Action              = action,
+                Status              = "Pending",
+                RequestedAt         = DateTime.Now,
+                RequestedByUserId   = userId,
+                RequestedByUserName = userName
+            });
+
+            await _dbContext.SaveChangesAsync();
+
+            return Json(new { success = true, isActive = newState, action });
+        }
+
+        public class ToggleActiveRequest
+        {
+            public string EmployeeCode { get; set; }
         }
     }
 }

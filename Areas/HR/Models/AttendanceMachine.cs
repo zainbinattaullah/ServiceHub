@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ServiceHub.Areas.HR.Models
 {
@@ -25,8 +26,14 @@ namespace ServiceHub.Areas.HR.Models
         [StringLength(100, ErrorMessage = "Device Model cannot exceed 100 characters.")]
         public string? DeviceModel { get; set; }
 
+        [Display(Name = "Store")]
+        public int? StoreId { get; set; }
+
+        [ForeignKey("StoreId")]
+        public Store? Store { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime? LastUpdated { get; set; }
-    }   
+    }
 }

@@ -16,9 +16,7 @@ namespace ServiceHub.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public HomeController(ILogger<HomeController> logger,
-                              UserManager<ApplicationUser> userManager,
-                              ServiceHubContext context)
+        public HomeController(ILogger<HomeController> logger,UserManager<ApplicationUser> userManager, ServiceHubContext context)
         {
             _logger      = logger;
             _userManager  = userManager;
@@ -72,7 +70,8 @@ namespace ServiceHub.Controllers
         // ================================================================
         private DashboardViewModel BuildDashboard(int month, int year, string? machineIP, string? status)
         {
-            var today = DateTime.Now.Date;
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
 
             // ── Machine filter list ─────────────────────────────────────
             var allMachines = _db.AttendenceMachines.AsNoTracking().ToList();
@@ -96,9 +95,7 @@ namespace ServiceHub.Controllers
             var endDate = startDate.AddMonths(1).AddDays(-1);
 
             // ── Connection logs (today) ─────────────────────────────────
-            var connLogsQuery = _db.AttendenceMachineConnectionLogs
-                                .AsNoTracking()
-                                .Where(l => l.Connection_StartTime.Date == today && l.Machine_IP != null && filteredIPs.Contains(l.Machine_IP));
+            var connLogsQuery = _db.AttendenceMachineConnectionLogs.AsNoTracking().Where(l => l.Connection_StartTime >= today && l.Connection_StartTime < tomorrow && l.Machine_IP != null && filteredIPs.Contains(l.Machine_IP));
 
             int successCount = connLogsQuery.Count(l => l.Status == "Success");
             int failCount = connLogsQuery.Count(l => l.Status == "Failed");

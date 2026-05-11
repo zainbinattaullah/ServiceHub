@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ServiceHub.Areas.HR.Models;
 using ServiceHub.Data;
+using System.Security.Claims;
 
 namespace ServiceHub.Areas.HR.Controllers
 {
@@ -26,12 +27,10 @@ namespace ServiceHub.Areas.HR.Controllers
             _db = db;
             _logger = logger;
         }
-
         // ================================================================
         //  GET  /HR/EmployeeDetailReport/Index
         // ================================================================
         public IActionResult Index() => View();
-
         // ================================================================
         //  POST /HR/EmployeeDetailReport/GetEmployees  (DataTables)
         // ================================================================
@@ -43,7 +42,6 @@ namespace ServiceHub.Areas.HR.Controllers
             int start  = int.Parse(form["start"].FirstOrDefault()  ?? "0");
             int length = int.Parse(form["length"].FirstOrDefault() ?? "25");
             var search = (form["search[value]"].FirstOrDefault()   ?? "").Trim().ToLower();
-
             try
             {
                 // ── Step 1: Unique employees (skip null EmployeeCode) ───
@@ -728,7 +726,7 @@ namespace ServiceHub.Areas.HR.Controllers
             {
                 EmpNo = empNo,
                 EmpName = first.EmployeeName ?? "",
-                Department = store?.Department ?? "N/A",
+                Department = "N/A",
                 Designation = "N/A",            // not stored in current schema
                 Branch = store?.StoreName ?? "N/A",
 
@@ -749,5 +747,49 @@ namespace ServiceHub.Areas.HR.Controllers
                 RecentAttendance = recentRows
             };
         }
+
+        // ── POST: ToggleActive ────────────────────────────────────────────
+        [HttpPost]
+        public async Task<IActionResult> ToggleActive([FromBody] ToggleActiveRequest req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.EmployeeCode))
+                return Json(new { success = false, message = "Employee code required." });
+
+            var enrollments = await _db.EmployeeEnrollments
+                .Where(e => e.EmployeeCode == req.EmployeeCode)
+                .ToListAsync();
+
+            if (!enrollments.Any())
+                return Json(new { success = false, message = "Employee not found." });
+
+            bool newState = !enrollments.Any(e => e.IsActive);
+            string action = newState ? "Activate" : "Deactivate";
+
+            foreach (var e in enrollments)
+                e.IsActive = newState;
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE Employee_Biometric_Log SET IsActive = {0}, LastUpdated = GETDATE() WHERE Emp_No = {1}",
+                newState ? 1 : 0, req.EmployeeCode);
+
+            string userId   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "System";
+            string userName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "System";
+
+            _db.EmployeeDeviceCommands.Add(new EmployeeDeviceCommand
+            {
+                EmployeeCode        = req.EmployeeCode,
+                EmployeeName        = enrollments.First().EmployeeName,
+                Action              = action,
+                Status              = "Pending",
+                RequestedAt         = DateTime.Now,
+                RequestedByUserId   = userId,
+                RequestedByUserName = userName
+            });
+
+            await _db.SaveChangesAsync();
+            return Json(new { success = true, isActive = newState, action });
+        }
+
+        public class ToggleActiveRequest { public string EmployeeCode { get; set; } }
     }
 }

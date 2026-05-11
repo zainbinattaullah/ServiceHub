@@ -19,7 +19,6 @@ namespace ServiceHub.Areas.HR.Controllers
         private readonly ServiceHubContext _dbContext;
         private readonly IConfiguration _configuration;
         private readonly ServiceHub.Controllers.TimeWindowService _timeWindowService;
-
         public EmployeeRegistrationController(IHttpClientFactory httpClientFactory, ILogger<EmployeeRegistrationController> logger, ServiceHubContext dbContext, IConfiguration configuration, ServiceHub.Controllers.TimeWindowService timeWindowService)
         {
             _httpClient = httpClientFactory.CreateClient("EmployeeApi");
@@ -164,7 +163,6 @@ namespace ServiceHub.Areas.HR.Controllers
                     }
                     catch { }
                 }
-
                 // Insert enrollment record regardless of API success
                 var enrollment = new EmployeeEnrollment
                 {
@@ -205,7 +203,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 {
                     alertMsg = message ?? "Failed to register employee on device. Enrollment saved locally for retry.";
                 }
-
                 ViewBag.Alert = alertMsg;
                 // repopulate lists and return view
                 model.MachineIPs = await GetMachineSelectListItems().ToListAsync();
@@ -227,12 +224,10 @@ namespace ServiceHub.Areas.HR.Controllers
                 return View(model);
             }
         }
-
         private int MapPrivilegeToInt(string? privilege)
         {
             if (string.IsNullOrWhiteSpace(privilege))
                 return 0; // default
-
             // If the frontend already passes numeric values as strings, accept them
             if (int.TryParse(privilege, out var numeric)) 
                 return numeric;
@@ -248,9 +243,7 @@ namespace ServiceHub.Areas.HR.Controllers
                         _logger.LogWarning("Unknown privilege mapping for '{Privilege}', defaulting to 0.", privilege);
                         return 0;
                 }
-
         }
-
         // DTO that matches the legacy service response
         private class EmployeeEnrollResultDto
         {

@@ -25,37 +25,69 @@ namespace ServiceHub.Areas.HR.Controllers
             _timeWindowService = timeWindowService;
             _logger = logger;
         }
-
         public IActionResult Index()
         {
             ViewBag.IsTransferWindowOpen = _timeWindowService.IsTransferWindowOpen();
             ViewBag.TransferWindowMessage = _timeWindowService.GetTransferWindowMessage();
             ViewBag.NextWindowChange = _timeWindowService.GetNextWindowChange()?.TotalMilliseconds;
             return View();
-        }
-        
+        }        
         public async Task<IActionResult> GetMachineIPs()
         {
             try
             {
-                var machineIPs = await _dbcontext.AttendenceMachines
+                var machines = await _dbcontext.AttendenceMachines
                     .Where(m => m.IsActive)
-                    .Select(m => new
-                    {
-                        Value = m.IpAddress,
-                        Label = m.Location + " - " + m.IpAddress
-                    })
+                    .Select(m => new { m.IpAddress, m.Port, m.Location, m.Name })
                     .ToListAsync();
 
-                return Json(machineIPs);
+                var statusTasks = machines.Select(async m =>
+                {
+                    bool isOnline = await Task.Run(() => IsMachineReachable(m.IpAddress, m.Port));
+                    string displayName = (!string.IsNullOrWhiteSpace(m.Location) ? m.Location : m.Name) + " - " + m.IpAddress;
+                    return new
+                    {
+                        Value    = m.IpAddress,
+                        Label    = displayName + (isOnline ? " (Online)" : " (Offline)"),
+                        IsOnline = isOnline
+                    };
+                });
+
+                var result = await Task.WhenAll(statusTasks);
+                return Json(result.OrderByDescending(m => m.IsOnline).ThenBy(m => m.Label));
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "Error getting machine IPs: " + ex.Message);
             }
         }
-        // Endpoint to transfer employees
+        private static bool IsMachineReachable(string ip, int port = 4370)
+        {
+            // Layer 1: ICMP ping
+            try
+            {
+                using var icmp = new System.Net.NetworkInformation.Ping();
+                var reply = icmp.Send(ip, 2000);
+                if (reply?.Status == System.Net.NetworkInformation.IPStatus.Success)
+                    return true;
+            }
+            catch { }
+            // Layer 2: TCP connect on ZKTeco port
+            try
+            {
+                using var tcp = new System.Net.Sockets.TcpClient();
+                var ar = tcp.BeginConnect(ip, port, null, null);
+                if (ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(2)) && tcp.Connected)
+                {
+                    tcp.EndConnect(ar);
+                    return true;
+                }
+            }
+            catch { }
 
+            return false;
+        }
+        // Endpoint to transfer employees
         [HttpPost]
         public async Task<IActionResult> TransferMultipleEmployees([FromBody] MultipleTransferRequest transferRequest)
         {
@@ -128,27 +160,15 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             try
             {
-                var windows = new List<object>();
-                var now = DateTime.Now;
-
-                // Get all transfer times and run times
-                var transferTimes = _timeWindowService.GetTransferTimes();
-                var runTimes = _timeWindowService.GetRunTimes();
-
-                foreach (var transferTime in transferTimes)
-                {
-                    // Find the next runtime after this transfer time
-                    var nextRuntime = runTimes.FirstOrDefault(r => r > transferTime);
-                    var windowEnd = nextRuntime != default ? nextRuntime
-                        : runTimes.First().Add(TimeSpan.FromDays(1));
-
-                    windows.Add(new
+                var windows = _timeWindowService.GetAllWindows()
+                    .Where(w => w.Kind == TimeWindowService.WindowKind.Transfer)
+                    .Select(w => new
                     {
-                        Start = DateTime.Today.Add(transferTime).ToString("hh:mm tt"),
-                        End = DateTime.Today.Add(windowEnd).ToString("hh:mm tt"),
-                        IsCurrent = now.TimeOfDay >= transferTime && now.TimeOfDay < windowEnd
-                    });
-                }
+                        Start     = DateTime.Today.Add(w.Start).ToString("hh:mm tt"),
+                        End       = DateTime.Today.Add(w.End  ).ToString("hh:mm tt"),
+                        IsCurrent = w.IsCurrent
+                    })
+                    .ToList();
 
                 return Json(windows);
             }

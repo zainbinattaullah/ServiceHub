@@ -16,10 +16,10 @@ namespace ServiceHub.Areas.HR.Models
         public DateTime? CompletedAt { get; set; }
         public int? DurationSeconds { get; set; }
         public int? RecordsFetched { get; set; }
-        public string ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; }
         public string RequestedByUserId { get; set; }
         public string RequestedByUserName { get; set; }
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
 
         [ForeignKey(nameof(MachineId))]
         public virtual AttendanceMachine Machine { get; set; }

@@ -20,12 +20,10 @@ namespace ServiceHub.Areas.HR.Controllers
     {
         private readonly ServiceHubContext _db;
         private const double StandardHours = 12.0;
-
         public AttendanceReportController(ServiceHubContext db)
         {
             _db = db;
-        }
-     
+        }    
         public async Task<IActionResult> Index()
         {
             var vm = new AttendanceReportPageViewModel
@@ -35,7 +33,6 @@ namespace ServiceHub.Areas.HR.Controllers
             };
             return View(vm);
         }
-
         // ---------------------------------------------------------------
         //  POST  /HR/AttendanceReport/GetReportData
         //  DataTables server-side JSON endpoint
@@ -47,9 +44,7 @@ namespace ServiceHub.Areas.HR.Controllers
             var draw = form["draw"].FirstOrDefault() ?? "1";
             int start = int.Parse(form["start"].FirstOrDefault() ?? "0");
             int length = int.Parse(form["length"].FirstOrDefault() ?? "25");
-
             var filter = ExtractFilter(form);
-
             if (filter.ReportType == "Monthly")
             {
                 var monthly = await BuildMonthlySummaryAsync(filter);
@@ -65,7 +60,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 var page = absent.Skip(start).Take(length).ToList();
                 return Json(new { draw, recordsTotal = total, recordsFiltered = total, data = page });
             }
-
             // Default: Detail report
             var detail = await BuildDetailReportAsync(filter);
             int detailTotal = detail.Count;
@@ -82,7 +76,6 @@ namespace ServiceHub.Areas.HR.Controllers
             var filter = BuildFilterFromQS(reportType, dateFrom, dateTo, employeeId, employeeName, department, location, month, year);
 
             using var wb = new XLWorkbook();
-
             if (filter.ReportType == "Monthly")
             {
                 var data = await BuildMonthlySummaryAsync(filter);
@@ -214,7 +207,6 @@ namespace ServiceHub.Areas.HR.Controllers
                 bool isLate = false;
                 double? overtime = null;
                 string otLabel = "—";
-
                 // Only calculate hours if there are at least 2 punches
                 // (same min/max with 1 punch means the person only checked in)
                 if (g.PunchCount >= 2 && g.CheckIn != g.CheckOut)
@@ -268,19 +260,18 @@ namespace ServiceHub.Areas.HR.Controllers
         private async Task<List<AttendanceMonthlySummaryViewModel>> BuildMonthlySummaryAsync(
             AttendanceReportFilter filter)
         {
-            // Default to current month if not specified
-            int targetMonth = filter.Month ?? DateTime.Now.Month;
-            int targetYear = filter.Year ?? DateTime.Now.Year;
+            var monthStart = filter.DateFrom?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var monthEnd   = filter.DateTo?.Date   ?? DateTime.Today;
+            int targetMonth = monthStart.Month;
+            int targetYear  = monthStart.Year;
 
-            var monthStart = new DateTime(targetYear, targetMonth, 1);
-            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-
-            // Reuse detail builder with month date range
+            // Reuse detail builder with the selected date range
             var detailFilter = new AttendanceReportFilter
             {
                 DateFrom = monthStart,
                 DateTo = monthEnd,
                 EmployeeId = filter.EmployeeId,
+                EmployeeName = filter.EmployeeName,
                 Department = filter.Department,
                 Location = filter.Location,
                 ReportType = "Detail"
@@ -288,8 +279,7 @@ namespace ServiceHub.Areas.HR.Controllers
 
             var detail = await BuildDetailReportAsync(detailFilter);
 
-            
-            int workingDaysInMonth = (monthEnd - monthStart).Days + 1; 
+            int workingDaysInMonth = (monthEnd - monthStart).Days + 1;
 
             var summary = detail.GroupBy(r => new { r.EmployeeId, r.EmployeeName, r.Department, r.Location })
                 .Select(g =>
@@ -378,7 +368,6 @@ namespace ServiceHub.Areas.HR.Controllers
                     }
                 }
             }
-
             return absent.OrderBy(a => a.Date).ThenBy(a => a.EmployeeId).ToList();
         }
 
@@ -413,7 +402,6 @@ namespace ServiceHub.Areas.HR.Controllers
                     lateCell.Style.Font.FontColor = XLColor.FromHtml("#dc3545");
                     lateCell.Style.Font.Bold = true;
                 }
-
                 ws.Cell(row, 10).Value = r.OvertimeLabel;
                 row++;
             }
