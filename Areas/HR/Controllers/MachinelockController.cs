@@ -232,26 +232,70 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             DateTime onlineThreshold = DateTime.Now.AddMinutes(-OnlineThresholdMinutes);
 
-            // Latest successful attendance sync per machine
-            var latestSync = await _db.AttendenceMachineConnectionLogs.GroupBy(l => l.MachineId).Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault()).ToListAsync();
-            var syncDict = latestSync.Where(l => l != null).ToDictionary(l => l.MachineId);
+            // ── Latest attendance sync per machine ───────────────────────────
+            // Two-step query: get max Id per machine (EF Core can translate this),
+            // then fetch those rows. Avoids the GroupBy+OrderBy+FirstOrDefault
+            // pattern that EF Core cannot translate to SQL.
+            var latestSyncIds = await _db.AttendenceMachineConnectionLogs
+                .GroupBy(l => l.MachineId)
+                .Select(g => g.Max(l => l.Id))
+                .ToListAsync();
 
-            // Latest SUCCESSFUL lock action per machine
-            var latestLock = await _db.MachineLockLogs.Where(l => l.Status == "Success").GroupBy(l => l.MachineId).Select(g => g.OrderByDescending(l => l.ExecutedAt).FirstOrDefault()).ToListAsync();
-            var lockDict = latestLock.Where(l => l != null).ToDictionary(l => l.MachineId);
+            var latestSyncs = await _db.AttendenceMachineConnectionLogs
+                .Where(l => latestSyncIds.Contains(l.Id))
+                .ToListAsync();
+            var syncDict = latestSyncs.ToDictionary(l => l.MachineId);
 
-            // Latest PENDING action per machine
-            var pendingLock = await _db.MachineLockLogs.Where(l => l.Status == "Pending").GroupBy(l => l.MachineId).Select(g => g.OrderByDescending(l => l.RequestedAt).FirstOrDefault()).ToListAsync();
-            var pendingDict = pendingLock.Where(l => l != null).ToDictionary(l => l.MachineId);
+            // ── Latest SUCCESSFUL lock action per machine ────────────────────
+            var latestLockIds = await _db.MachineLockLogs
+                .Where(l => l.Status == "Success")
+                .GroupBy(l => l.MachineId)
+                .Select(g => g.Max(l => l.Id))
+                .ToListAsync();
 
-            // Machines joined with stores
-            var machines = await _db.AttendenceMachines.Where(m => m.IsActive).ToListAsync();
+            var latestLocks = await _db.MachineLockLogs
+                .Where(l => latestLockIds.Contains(l.Id))
+                .ToListAsync();
+            var lockDict = latestLocks.ToDictionary(l => l.MachineId);
 
-            // Store lookup by StoreCode = machine.Location
-            var storeCodes = machines.Where(m => m.Location != null).Select(m => m.Location).Distinct().ToList();
+            // ── Latest PENDING action per machine ────────────────────────────
+            var latestPendingIds = await _db.MachineLockLogs
+                .Where(l => l.Status == "Pending")
+                .GroupBy(l => l.MachineId)
+                .Select(g => g.Max(l => l.Id))
+                .ToListAsync();
 
-            var stores = await _db.Stores.Where(s => storeCodes.Contains(s.StoreCode)).ToListAsync();
-            var storeDict = stores.ToDictionary(s => s.StoreCode);
+            var pendingLocks = await _db.MachineLockLogs
+                .Where(l => latestPendingIds.Contains(l.Id))
+                .ToListAsync();
+            var pendingDict = pendingLocks.ToDictionary(l => l.MachineId);
+
+            // ── Active machines ──────────────────────────────────────────────
+            // Exclude ADMS push machines — lock/unlock requires ZKemKeeper DLL
+            // which push devices (SerialNumber set) do not support.
+            var machines = await _db.AttendenceMachines
+                .Where(m => m.IsActive && (m.SerialNumber == null || m.SerialNumber == ""))
+                .ToListAsync();
+
+            // ── Store lookup by StoreCode = machine.Location ─────────────────
+            // Include Area and Region so store?.Area?.Name is not null
+            var storeCodes = machines
+                .Where(m => !string.IsNullOrEmpty(m.Location))
+                .Select(m => m.Location!)
+                .Distinct()
+                .ToList();
+
+            var stores = await _db.Stores
+                .Include(s => s.Area)
+                .Include(s => s.Region)
+                .Where(s => s.StoreCode != null && storeCodes.Contains(s.StoreCode))
+                .ToListAsync();
+
+            // Use GroupBy to safely handle any duplicate StoreCode rows
+            var storeDict = stores
+                .Where(s => s.StoreCode != null)
+                .GroupBy(s => s.StoreCode!)
+                .ToDictionary(g => g.Key, g => g.First());
 
             var rows = new List<MachineLockDashboardRow>();
 
@@ -276,6 +320,7 @@ namespace ServiceHub.Areas.HR.Controllers
                     MachineName = m.Name,
                     MachineIP = m.IpAddress,
                     Port = m.Port,
+                    SerialNumber = m.SerialNumber,
                     Location = m.Location,
                     StoreName = store?.StoreName,
                     Area = store?.Area?.Name,

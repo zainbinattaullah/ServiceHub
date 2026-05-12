@@ -36,8 +36,10 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             try
             {
+                // Exclude ADMS push machines (SerialNumber != null) — they cannot be
+                // accessed via ZKemKeeper DLL, so transfer source/destination is meaningless.
                 var machines = await _dbcontext.AttendenceMachines
-                    .Where(m => m.IsActive)
+                    .Where(m => m.IsActive && (m.SerialNumber == null || m.SerialNumber == ""))
                     .Select(m => new { m.IpAddress, m.Port, m.Location, m.Name })
                     .ToListAsync();
 

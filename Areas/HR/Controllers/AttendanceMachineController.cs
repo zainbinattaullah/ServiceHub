@@ -97,8 +97,10 @@ namespace ServiceHub.Areas.HR.Controllers
                     port = m.Port,
                     description = m.Description,
                     location = m.Location,
+                    serialNumber = m.SerialNumber,
                     isActive = m.IsActive,
-                    isFetchAll = m.IsFetchAll
+                    isFetchAll = m.IsFetchAll,
+                    isPushMode = m.SerialNumber != null && m.SerialNumber != ""
                 })
                 .ToListAsync();
             // Return JSON response
@@ -121,7 +123,7 @@ namespace ServiceHub.Areas.HR.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
+        public async Task<IActionResult> Create([Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,SerialNumber,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
         {   
             // Guard against null model binding
             if (attendanceMachine == null)
@@ -160,7 +162,7 @@ namespace ServiceHub.Areas.HR.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,IpAddress,Port,IsActive,IsFetchAll,SerialNumber,Location,Description,DeviceModel,StoreId,CreatedAt,LastUpdated")] AttendanceMachine attendanceMachine)
         {
             // Guard against null model binding
             if (attendanceMachine == null)

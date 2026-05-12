@@ -18,8 +18,18 @@ namespace ServiceHub.Areas.HR.Models
         [Required(ErrorMessage = "Port is required.")]
         [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
         public int Port { get; set; }       
-        public bool IsActive { get; set; } = false;       
-        public bool IsFetchAll { get; set; } = false;   
+        public bool IsActive { get; set; } = false;
+        public bool IsFetchAll { get; set; } = false;
+
+        [StringLength(100, ErrorMessage = "Serial Number cannot exceed 100 characters.")]
+        [Display(Name = "Serial Number")]
+        public string? SerialNumber { get; set; }
+
+        // True when this machine uses ADMS push mode (SpeedFace-V5L etc.) —
+        // ZKemKeeper operations (ForceSync, Lock, Transfer) do not apply to it.
+        [NotMapped]
+        public bool IsPushMode => !string.IsNullOrWhiteSpace(SerialNumber);
+
         public string? Location { get; set; }
         public string? Description { get; set; }
 

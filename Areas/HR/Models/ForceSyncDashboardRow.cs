@@ -15,6 +15,9 @@
         public string Region { get; set; }
 
         // Connectivity — last 70 min success sync
+        public string SerialNumber { get; set; }
+        public bool IsPushMode => !string.IsNullOrWhiteSpace(SerialNumber);
+
         public string ConnectivityStatus { get; set; }
         public bool IsOnline => ConnectivityStatus == "Online";
 

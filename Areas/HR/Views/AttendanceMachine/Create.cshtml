@@ -41,6 +41,11 @@
                             <input asp-for="Location" class="form-control" />
                             <span asp-validation-for="Location" class="text-danger"></span>
                         </div>
+                        <div class="col-md-6">
+                            <label asp-for="SerialNumber" class="form-label">Serial Number <small class="text-muted">(ADMS push devices only)</small></label>
+                            <input asp-for="SerialNumber" class="form-control" placeholder="Leave blank for pull-mode devices" />
+                            <span asp-validation-for="SerialNumber" class="text-danger"></span>
+                        </div>
                         <div class="col-md-6 d-flex align-items-center gap-4 pt-4">
                             <div class="form-check form-switch">
                                 <input type="checkbox" asp-for="IsActive" class="form-check-input" />

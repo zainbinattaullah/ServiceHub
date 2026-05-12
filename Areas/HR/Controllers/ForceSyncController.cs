@@ -443,8 +443,10 @@ namespace ServiceHub.Areas.HR.Controllers
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
 
             // ── Machines & stores ─────────────────────────────────────────
+            // Exclude ADMS push machines — they push data automatically and
+            // cannot be force-synced via ZKemKeeper.
             var machines = await _db.AttendenceMachines
-                .Where(m => m.IsActive)
+                .Where(m => m.IsActive && (m.SerialNumber == null || m.SerialNumber == ""))
                 .ToListAsync();
 
             var storeCodes = machines
@@ -516,6 +518,7 @@ namespace ServiceHub.Areas.HR.Controllers
                     MachineName = m.Name,
                     MachineIP = m.IpAddress,
                     Port = m.Port,
+                    SerialNumber = m.SerialNumber,
                     Location = m.Location,
                     StoreName = store?.StoreName,
                     Area = store?.Area?.Name,

@@ -14,6 +14,9 @@
         public string Region { get; set; }
 
         // Lock state — derived from latest Success log
+        public string SerialNumber { get; set; }
+        public bool IsPushMode => !string.IsNullOrWhiteSpace(SerialNumber);
+
         public string LockStatus { get; set; }   // "Locked" | "Unlocked" | "Unknown"
         public bool IsLocked => LockStatus == "Locked";
 
