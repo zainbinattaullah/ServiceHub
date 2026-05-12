@@ -252,10 +252,18 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             DateTime threshold = DateTime.Now.AddMinutes(-OnlineThresholdMinutes);
 
-            // Latest log per machine
-            var latestLogs = await _db.AttendenceMachineConnectionLogs.GroupBy(l => l.MachineId).Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault()).ToListAsync();
+            // Latest log per machine — two-step query (EF Core cannot translate
+            // GroupBy+OrderBy+FirstOrDefault to SQL; Max(Id) is always translatable)
+            var latestLogIds = await _db.AttendenceMachineConnectionLogs
+                .GroupBy(l => l.MachineId)
+                .Select(g => g.Max(l => l.Id))
+                .ToListAsync();
 
-            var logDict = latestLogs.Where(l => l != null).ToDictionary(l => l.MachineId);
+            var latestLogs = await _db.AttendenceMachineConnectionLogs
+                .Where(l => latestLogIds.Contains(l.Id))
+                .ToListAsync();
+
+            var logDict = latestLogs.ToDictionary(l => l.MachineId);
 
             var machines = await _db.AttendenceMachines.Where(m => m.IsActive).ToListAsync();
 
