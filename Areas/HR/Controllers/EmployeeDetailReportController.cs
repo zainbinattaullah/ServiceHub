@@ -489,10 +489,10 @@ namespace ServiceHub.Areas.HR.Controllers
                 $"Employee_{vm.EmpNo}_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
 
-        // ================================================================
+        // ===============================================================
         //  GET  /HR/EmployeeDetailReport/ExportListExcel
         //  Exports the full employee list with fraud flags
-        // ================================================================
+        // ===============================================================
         [HttpGet]
         public async Task<IActionResult> ExportListExcel(string? search = null)
         {
