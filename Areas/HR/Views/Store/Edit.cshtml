@@ -46,11 +46,8 @@
                         </div>
                         <div class="col-md-6 d-flex align-items-center pt-4">
                             <div class="form-check form-switch">
-                                <input type="hidden" name="IsActive" value="false" />
-                                <input type="checkbox" name="IsActive" value="true"
-                                       class="form-check-input" id="IsActive"
-                                       @(Model.IsActive ? "checked" : "") />
-                                <label class="form-check-label" for="IsActive">Active</label>
+                                <input asp-for="IsActive" class="form-check-input" />
+                                <label class="form-check-label" asp-for="IsActive">Active</label>
                             </div>
                         </div>
                         <div class="col-12">

@@ -22,6 +22,7 @@ namespace ServiceHub.Areas.HR.Models
         // ── Filters (current state passed to view) ───────────────────────
         public int FilterMonth { get; set; }
         public int FilterYear { get; set; }
+        public DateTime FilterDate { get; set; }
         public string? FilterMachineIP { get; set; }
         public string? FilterStatus { get; set; }   // "all" | "active" | "inactive"
 

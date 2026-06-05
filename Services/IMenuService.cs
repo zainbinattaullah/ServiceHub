@@ -31,6 +31,12 @@ namespace ServiceHub.Services
         /// </summary>
         Task<bool> IsRouteAllowedAsync(string? area, string controller,
                                        string action, IEnumerable<string> roleIds);
+
+        /// <summary>
+        /// Finds the first available URL for the given roles.
+        /// Useful for redirecting users after login when they don't have access to the dashboard.
+        /// </summary>
+        Task<string> GetLandingPageForRolesAsync(IEnumerable<string> roleIds);
     }
 
     /// <summary>

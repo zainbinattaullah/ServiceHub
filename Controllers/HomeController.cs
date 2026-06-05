@@ -26,14 +26,13 @@ namespace ServiceHub.Controllers
         // ================================================================
         //  GET /Home/Index  (Dashboard — full page load)
         // ================================================================
-        public IActionResult Index(int? month, int? year, string? machineIP, string? status)
+        public IActionResult Index(DateTime? date, string? machineIP, string? status)
         {
             ViewData["User_Id"] = _userManager.GetUserId(User);
 
-            int m = month ?? DateTime.Now.Month;
-            int y = year  ?? DateTime.Now.Year;
+            var d = date ?? DateTime.Today;
 
-            var vm = BuildDashboard(m, y, machineIP, status);
+            var vm = BuildDashboard(d, machineIP, status);
             return View(vm);
         }
 
@@ -41,9 +40,10 @@ namespace ServiceHub.Controllers
         //  GET /Home/DashboardData  (AJAX — filter change without reload)
         // ================================================================
         [HttpGet]
-        public IActionResult DashboardData(int month, int year, string? machineIP, string? status)
+        public IActionResult DashboardData(DateTime? date, string? machineIP, string? status)
         {
-            var vm = BuildDashboard(month, year, machineIP, status);
+            var d = date ?? DateTime.Today;
+            var vm = BuildDashboard(d, machineIP, status);
             return Json(new
             {
                 successfullyConnected = vm.SuccessfullyConnected,
@@ -65,13 +65,82 @@ namespace ServiceHub.Controllers
             });
         }
 
+        [HttpGet]
+        public IActionResult TotalEmployeesDetails()
+        {
+            var employees = _db.EmployeeEnrollments
+                .AsNoTracking()
+                .Where(e => e.EmployeeCode != null)
+                .GroupBy(e => e.EmployeeCode)
+                .Select(g => g.OrderByDescending(x => x.CreatedAt).FirstOrDefault())
+                .ToList();
+
+            var machines = _db.AttendenceMachines.AsNoTracking().ToDictionary(m => m.Id, m => m.Name ?? m.IpAddress ?? "");
+
+            var result = employees.Select(e => new {
+                empNo = e.EmployeeCode,
+                empName = e.EmployeeName ?? "—",
+                machineName = e.MachineId.HasValue && machines.TryGetValue(e.MachineId.Value, out var mName) ? mName : (e.MachineIP ?? "—"),
+                isSynced = e.IsSynced,
+                syncStatus = e.IsSynced ? "Synced" : "Pending",
+                createdAt = e.CreatedAt.ToString("dd MMM yyyy HH:mm")
+            }).OrderBy(e => e.empName).ToList();
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        public IActionResult EnrolledEmployeesDetails()
+        {
+            var enrolled = _db.Employee_Biometric_Log
+                .AsNoTracking()
+                .Where(b => b.IsActive && b.EmpNo != null)
+                .GroupBy(b => b.EmpNo)
+                .Select(g => g.OrderByDescending(x => x.EnrollmentDate).FirstOrDefault())
+                .ToList();
+
+            var empNos = enrolled.Select(e => e.EmpNo).ToList();
+
+            // Get all machine names for lookup
+            var machines = _db.AttendenceMachines.AsNoTracking().ToDictionary(m => m.IpAddress ?? "", m => m.Name ?? m.IpAddress ?? "");
+
+            var latestSwaps = _db.HR_Swap_Record
+                .AsNoTracking()
+                .Where(s => empNos.Contains(s.Emp_No))
+                .GroupBy(s => s.Emp_No)
+                .Select(g => g.OrderByDescending(s => s.Swap_Time).FirstOrDefault())
+                .ToDictionary(s => s.Emp_No, s => s);
+
+            var result = enrolled.Select(e => {
+                var hasSwap = latestSwaps.TryGetValue(e.EmpNo ?? "", out var s);
+                string lastMachine = "—";
+                if (hasSwap && s!.Machine_IP != null)
+                {
+                    machines.TryGetValue(s.Machine_IP, out lastMachine);
+                }
+
+                return new {
+                    empNo = e.EmpNo,
+                    empName = e.EmpName,
+                    enrolledAt = e.MachineName ?? "—",
+                    lastSeenAt = lastMachine,
+                    fingers = e.TotalFingersEnrolled,
+                    enrollDate = e.EnrollmentDate.ToString("dd MMM yyyy"),
+                    latestSwap = hasSwap ? s!.Swap_Time?.ToString("dd MMM yyyy HH:mm") : "No record",
+                    direction = hasSwap ? (s!.Shift_In == true ? "In" : s.Shift_Out == true ? "Out" : "–") : "–"
+                };
+            }).OrderBy(e => e.empName).ToList();
+
+            return Json(result);
+        }
+
         // ================================================================
         //  Private: build dashboard view-model with filters
         // ================================================================
-        private DashboardViewModel BuildDashboard(int month, int year, string? machineIP, string? status)
+        private DashboardViewModel BuildDashboard(DateTime date, string? machineIP, string? status)
         {
-            var today = DateTime.Today;
-            var tomorrow = today.AddDays(1);
+            var targetDay = date.Date;
+            var nextDay   = targetDay.AddDays(1);
 
             // ── Machine filter list ─────────────────────────────────────
             var allMachines = _db.AttendenceMachines.AsNoTracking().ToList();
@@ -90,21 +159,20 @@ namespace ServiceHub.Controllers
             var filteredIPs = !string.IsNullOrEmpty(machineIP) ? new string[] { machineIP } : filteredMachines.Select(m => m.IpAddress).ToArray();
 
 
-            // ── Date range for month/year filter ────────────────────────────
-            var startDate = new DateTime(year, month, 1);
-            var endDate = startDate.AddMonths(1).AddDays(-1);
-
-            // ── Connection logs (today) ─────────────────────────────────
-            var connLogsQuery = _db.AttendenceMachineConnectionLogs.AsNoTracking().Where(l => l.Connection_StartTime >= today && l.Connection_StartTime < tomorrow && l.Machine_IP != null && filteredIPs.Contains(l.Machine_IP));
+            // ── Connection logs (selected day) ──────────────────────────
+            var connLogsQuery = _db.AttendenceMachineConnectionLogs.AsNoTracking()
+                .Where(l => l.Connection_StartTime >= targetDay && 
+                            l.Connection_StartTime < nextDay && 
+                            l.Machine_IP != null && 
+                            filteredIPs.Contains(l.Machine_IP));
 
             int successCount = connLogsQuery.Count(l => l.Status == "Success");
             int failCount = connLogsQuery.Count(l => l.Status == "Failed");
 
-            // ── Records fetched (selected month/year) ────────────────────
-
+            // ── Records fetched (selected day) ───────────────────────────
             var swapQuery = _db.HR_Swap_Record.AsNoTracking().Where(r => r.Swap_Time.HasValue &&
-                   r.Swap_Time.Value >= startDate &&
-                   r.Swap_Time.Value <= endDate.AddDays(1).AddTicks(-1) &&
+                   r.Swap_Time.Value >= targetDay &&
+                   r.Swap_Time.Value < nextDay &&
                    r.Machine_IP != null &&
                    filteredIPs.Contains(r.Machine_IP));
 
@@ -123,17 +191,20 @@ namespace ServiceHub.Controllers
                 .Where(b => b.IsActive && b.EmpNo != null)
                 .Select(b => b.EmpNo).Distinct().Count();
 
-            // ── Day-wise chart (selected month) ──────────────────────────
-            var recordsByDate = swapQuery.GroupBy(r => r.Swap_Time!.Value.Date).Select(g => new { Date = g.Key, Count = g.Count() }).ToList();
+            // ── Hourly chart (selected day) ──────────────────────────────
+            var recordsByHour = swapQuery
+                .GroupBy(r => r.Swap_Time!.Value.Hour)
+                .Select(g => new { Hour = g.Key, Count = g.Count() })
+                .ToList();
 
-            var lookup = recordsByDate.ToDictionary(r => r.Date, r => r.Count);
+            var lookup = recordsByHour.ToDictionary(r => r.Hour, r => r.Count);
 
             var labels = new List<string>();
             var data = new List<int>();
-            for (var d = startDate; d <= endDate; d = d.AddDays(1))
+            for (int h = 0; h < 24; h++)
             {
-                labels.Add(d.ToString("dd MMM"));
-                data.Add(lookup.TryGetValue(d, out int cnt) ? cnt : 0);
+                labels.Add($"{h:D2}:00");
+                data.Add(lookup.TryGetValue(h, out int cnt) ? cnt : 0);
             }
 
             // ── Per-machine breakdown (donut chart) ──────────────────────
@@ -152,8 +223,8 @@ namespace ServiceHub.Controllers
             var recent = _db.HR_Swap_Record
                          .AsNoTracking()
                          .Where(r => r.Swap_Time.HasValue &&
-                                     r.Swap_Time.Value >= startDate &&
-                                     r.Swap_Time.Value <= endDate.AddDays(1).AddTicks(-1) &&
+                                     r.Swap_Time.Value >= targetDay &&
+                                     r.Swap_Time.Value < nextDay &&
                                      r.Machine_IP != null &&
                                      filteredIPs.Contains(r.Machine_IP))
                          .OrderByDescending(r => r.PK_line_id)
@@ -185,8 +256,9 @@ namespace ServiceHub.Controllers
                 ChartData             = data,
                 MachineNames          = mNames,
                 MachineRecordCounts   = mCounts,
-                FilterMonth           = month,
-                FilterYear            = year,
+                FilterDate            = targetDay,
+                FilterMonth           = targetDay.Month,
+                FilterYear            = targetDay.Year,
                 FilterMachineIP       = machineIP,
                 FilterStatus          = status ?? "all",
                 Machines              = machineFilter,
