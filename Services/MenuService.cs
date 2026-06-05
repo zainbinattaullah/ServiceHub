@@ -122,5 +122,19 @@ namespace ServiceHub.Services
             return match.RoleMenuItems.Any(r =>
                 roles.Contains(r.RoleId, StringComparer.OrdinalIgnoreCase));
         }
+
+        public async Task<string> GetLandingPageForRolesAsync(IEnumerable<string> roleIds)
+        {
+            var menu = await GetMenuForRolesAsync(roleIds);
+            if (!menu.Any()) return "/";
+
+            var first = menu.First();
+            // If it's a group, take the first child's URL
+            if (first.IsGroup && first.Children.Any())
+            {
+                return first.Children.First().ResolvedUrl;
+            }
+            return first.ResolvedUrl;
+        }
     }
 }

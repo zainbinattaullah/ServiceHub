@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using ServiceHub.Services;
 
 namespace ServiceHub.Areas.Identity.Pages.Account
 {
@@ -21,11 +22,21 @@ namespace ServiceHub.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly IMenuService _menuService;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, 
+            ILogger<LoginModel> logger,
+            IMenuService menuService,
+            RoleManager<IdentityRole> roleManager,
+            UserManager<ApplicationUser> userManager)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _menuService = menuService;
+            _roleManager = roleManager;
+            _userManager = userManager;
         }
 
         /// <summary>
@@ -119,6 +130,24 @@ namespace ServiceHub.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
+
+                    // If they are just going to the root, find their best landing page
+                    if (string.IsNullOrEmpty(returnUrl) || returnUrl == "/" || returnUrl == Url.Content("~/"))
+                    {
+                        var user = await _userManager.FindByEmailAsync(Input.Email);
+                        if (user != null)
+                        {
+                            var roleNames = await _userManager.GetRolesAsync(user);
+                            var roleIds = new List<string>();
+                            foreach (var rn in roleNames)
+                            {
+                                var role = await _roleManager.FindByNameAsync(rn);
+                                if (role != null) roleIds.Add(role.Id);
+                            }
+                            returnUrl = await _menuService.GetLandingPageForRolesAsync(roleIds);
+                        }
+                    }
+
                     return LocalRedirect(returnUrl);
                 }
                 if (result.RequiresTwoFactor)

@@ -9,22 +9,8 @@
     <div class="app-content-header">
         <div class="container-fluid">
                     <div class="d-flex flex-wrap gap-2 justify-content-end align-items-center">
-                        <!-- Month/Year Picker -->
-                        @Html.Raw("<select id=\"filterMonth\" class=\"form-select form-select-sm\" style=\"width:130px\">")
-                        @for (int i = 0; i < 12; i++)
-                        {
-                            var sel = Model.FilterMonth == i + 1 ? " selected" : "";
-                            @Html.Raw($"<option value=\"{i + 1}\"{sel}>{months[i]}</option>")
-                        }
-                        @Html.Raw("</select>")
-
-                        @Html.Raw("<select id=\"filterYear\" class=\"form-select form-select-sm\" style=\"width:100px\">")
-                        @for (int yr = DateTime.Now.Year; yr >= DateTime.Now.Year - 3; yr--)
-                        {
-                            var sel = Model.FilterYear == yr ? " selected" : "";
-                            @Html.Raw($"<option value=\"{yr}\"{sel}>{yr}</option>")
-                        }
-                        @Html.Raw("</select>")
+                        <!-- Date Picker -->
+                        <input type="date" id="filterDate" class="form-control form-control-sm" style="width:150px" value="@Model.FilterDate.ToString("yyyy-MM-dd")" />
 
                         <!-- Machine Filter -->
                         @Html.Raw("<select id=\"filterMachine\" class=\"form-select form-select-sm\" style=\"width:180px\">")
@@ -120,7 +106,7 @@
                 </div>
                 <!-- Card 5: Employees -->
                 <div class="col-6 col-md-4 col-xl">
-                    <div class="card h-100 border-0 sh-stat-card">
+                    <div class="card h-100 border-0 sh-stat-card" id="cardEmployeesContainer" style="cursor:pointer" title="Click to view details">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="sh-stat-icon" style="background:var(--sh-grad-purple)">
                                 <i class="fas fa-users"></i>
@@ -134,7 +120,7 @@
                 </div>
                 <!-- Card 6: Enrolled -->
                 <div class="col-6 col-md-4 col-xl">
-                    <div class="card h-100 border-0 sh-stat-card">
+                    <div class="card h-100 border-0 sh-stat-card" id="cardEnrolledContainer" style="cursor:pointer" title="Click to view details">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="sh-stat-icon" style="background:var(--sh-grad-info)">
                                 <i class="fas fa-fingerprint"></i>
@@ -148,6 +134,80 @@
                 </div>
             </div>
 
+            <!-- ══════════════════ MODALS ══════════════════ -->
+            <div class="modal fade" id="enrolledDetailsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-light border-0">
+                            <h5 class="modal-title"><i class="fas fa-fingerprint me-2 text-info"></i>Enrolled Employees & Latest Logs</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive" style="max-height:60vh">
+                                <table class="table table-hover mb-0">
+                                    <thead class="sticky-top bg-white shadow-sm">
+                                        <tr>
+                                            <th>Emp ID</th>
+                                            <th>Name</th>
+                                            <th>Enrolled At</th>
+                                            <th>Last Seen At</th>
+                                            <th class="text-center">Fingers</th>
+                                            <th>Latest Activity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="enrolledDetailsBody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="enrolledLoading" class="text-center py-5">
+                                <div class="spinner-border text-info" role="status"></div>
+                                <div class="mt-2 text-muted">Loading details...</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="totalEmployeesModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-light border-0">
+                            <h5 class="modal-title"><i class="fas fa-users me-2 text-purple"></i>Total Employees Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive" style="max-height:60vh">
+                                <table class="table table-hover mb-0">
+                                    <thead class="sticky-top bg-white shadow-sm">
+                                        <tr>
+                                            <th>Emp ID</th>
+                                            <th>Name</th>
+                                            <th>Machine</th>
+                                            <th>Sync Status</th>
+                                            <th>Created At</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="totalEmployeesBody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="totalEmployeesLoading" class="text-center py-5">
+                                <div class="spinner-border text-purple" role="status"></div>
+                                <div class="mt-2 text-muted">Loading details...</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ══════════════════ CHARTS ROW ══════════════════ -->
             <div class="row g-3 mb-4">
                 <!-- Attendance Trend (area chart) -->
@@ -156,7 +216,7 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-chart-area me-2" style="color:var(--sh-primary)"></i>Attendance Trend</h5>
                             <span class="badge bg-secondary" id="chartPeriod">
-                                @months[Model.FilterMonth - 1] @Model.FilterYear
+                                @Model.FilterDate.ToString("dd MMM yyyy")
                             </span>
                         </div>
                         <div class="card-body">
@@ -307,16 +367,15 @@
     document.getElementById('btnRefresh').addEventListener('click', refreshDashboard);
 
     function refreshDashboard() {
-        var btn   = document.getElementById('btnRefresh');
-        var month = document.getElementById('filterMonth').value;
-        var year  = document.getElementById('filterYear').value;
-        var ip    = document.getElementById('filterMachine').value;
-        var st    = document.getElementById('filterStatus').value;
+        var btn  = document.getElementById('btnRefresh');
+        var date = document.getElementById('filterDate').value;
+        var ip   = document.getElementById('filterMachine').value;
+        var st   = document.getElementById('filterStatus').value;
 
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
 
-        fetch('/Home/DashboardData?month=' + month + '&year=' + year
+        fetch('/Home/DashboardData?date=' + date
               + '&machineIP=' + encodeURIComponent(ip) + '&status=' + st)
             .then(function(r) { return r.json(); })
             .then(function(d) {
@@ -330,8 +389,13 @@
                 document.getElementById('cardEnrolled').textContent   = d.enrolledEmployees;
 
                 // Update period badge
-                var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                document.getElementById('chartPeriod').textContent = monthNames[parseInt(month)-1] + ' ' + year;
+                if (date) {
+                    var dt = new Date(date);
+                    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    document.getElementById('chartPeriod').textContent = 
+                        (dt.getDate() < 10 ? '0' : '') + dt.getDate() + ' ' + 
+                        months[dt.getMonth()] + ' ' + dt.getFullYear();
+                }
 
                 // Update area chart
                 areaChart.updateOptions({
@@ -364,6 +428,92 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh';
             });
+    }
+
+    // ── Enrollment Details Modal ──────────────────────────────
+    var enrollCard = document.getElementById('cardEnrolledContainer');
+    var enrollModal = new bootstrap.Modal(document.getElementById('enrolledDetailsModal'));
+    
+    if (enrollCard) {
+        enrollCard.addEventListener('click', function() {
+            var body = document.getElementById('enrolledDetailsBody');
+            var loader = document.getElementById('enrolledLoading');
+            
+            body.innerHTML = '';
+            loader.classList.remove('d-none');
+            enrollModal.show();
+
+            fetch('/Home/EnrolledEmployeesDetails')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    loader.classList.add('d-none');
+                    if (data && data.length) {
+                        body.innerHTML = data.map(function(e) {
+                            var dc = e.direction === 'In' ? 'bg-success' : e.direction === 'Out' ? 'bg-danger' : 'bg-secondary';
+                            return '<tr>' +
+                                '<td><strong>' + e.empNo + '</strong></td>' +
+                                '<td>' + e.empName + '</td>' +
+                                '<td>' + (e.enrolledAt || '—') + '</td>' +
+                                '<td>' + (e.lastSeenAt || '—') + '</td>' +
+                                '<td class="text-center"><span class="badge rounded-pill bg-light text-dark border">' + e.fingers + '</span></td>' +
+                                '<td>' +
+                                    '<div class="d-flex align-items-center gap-2">' +
+                                        '<span class="badge ' + dc + '">' + e.direction + '</span>' +
+                                        '<small class="text-muted">' + e.latestSwap + '</small>' +
+                                    '</div>' +
+                                '</td>' +
+                            '</tr>';
+                        }).join('');
+                    } else {
+                        body.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No enrolled employees found.</td></tr>';
+                    }
+                })
+                .catch(function(err) {
+                    loader.classList.add('d-none');
+                    body.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load data.</td></tr>';
+                    console.error('Enrollment details load failed', err);
+                });
+        });
+    }
+
+    // ── Total Employees Details Modal ─────────────────────────
+    var empsCard = document.getElementById('cardEmployeesContainer');
+    var empsModal = new bootstrap.Modal(document.getElementById('totalEmployeesModal'));
+
+    if (empsCard) {
+        empsCard.addEventListener('click', function() {
+            var body = document.getElementById('totalEmployeesBody');
+            var loader = document.getElementById('totalEmployeesLoading');
+
+            body.innerHTML = '';
+            loader.classList.remove('d-none');
+            empsModal.show();
+
+            fetch('/Home/TotalEmployeesDetails')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    loader.classList.add('d-none');
+                    if (data && data.length) {
+                        body.innerHTML = data.map(function(e) {
+                            var sc = e.isSynced ? 'bg-success' : 'bg-warning text-dark';
+                            return '<tr>' +
+                                '<td><strong>' + e.empNo + '</strong></td>' +
+                                '<td>' + e.empName + '</td>' +
+                                '<td>' + e.machineName + '</td>' +
+                                '<td><span class="badge ' + sc + '">' + e.syncStatus + '</span></td>' +
+                                '<td>' + e.createdAt + '</td>' +
+                            '</tr>';
+                        }).join('');
+                    } else {
+                        body.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No employees found.</td></tr>';
+                    }
+                })
+                .catch(function(err) {
+                    loader.classList.add('d-none');
+                    body.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load data.</td></tr>';
+                    console.error('Total employees load failed', err);
+                });
+        });
     }
 })();
 </script>
