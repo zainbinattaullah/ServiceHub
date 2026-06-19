@@ -233,42 +233,28 @@ namespace ServiceHub.Areas.HR.Controllers
             DateTime onlineThreshold = DateTime.Now.AddMinutes(-OnlineThresholdMinutes);
 
             // ── Latest attendance sync per machine ───────────────────────────
-            // Two-step query: get max Id per machine (EF Core can translate this),
-            // then fetch those rows. Avoids the GroupBy+OrderBy+FirstOrDefault
-            // pattern that EF Core cannot translate to SQL.
-            var latestSyncIds = await _db.AttendenceMachineConnectionLogs
-                .GroupBy(l => l.MachineId)
-                .Select(g => g.Max(l => l.Id))
-                .ToListAsync();
-
+            // Modern EF Core (6+) translates GroupBy + Select FirstOrDefault into efficient SQL (ROW_NUMBER)
             var latestSyncs = await _db.AttendenceMachineConnectionLogs
-                .Where(l => latestSyncIds.Contains(l.Id))
+                .GroupBy(l => l.MachineId)
+                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
                 .ToListAsync();
-            var syncDict = latestSyncs.ToDictionary(l => l.MachineId);
+            var syncDict = latestSyncs.Where(l => l != null).ToDictionary(l => l!.MachineId);
 
             // ── Latest SUCCESSFUL lock action per machine ────────────────────
-            var latestLockIds = await _db.MachineLockLogs
+            var latestLocks = await _db.MachineLockLogs
                 .Where(l => l.Status == "Success")
                 .GroupBy(l => l.MachineId)
-                .Select(g => g.Max(l => l.Id))
+                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
                 .ToListAsync();
-
-            var latestLocks = await _db.MachineLockLogs
-                .Where(l => latestLockIds.Contains(l.Id))
-                .ToListAsync();
-            var lockDict = latestLocks.ToDictionary(l => l.MachineId);
+            var lockDict = latestLocks.Where(l => l != null).ToDictionary(l => l!.MachineId);
 
             // ── Latest PENDING action per machine ────────────────────────────
-            var latestPendingIds = await _db.MachineLockLogs
+            var pendingLocks = await _db.MachineLockLogs
                 .Where(l => l.Status == "Pending")
                 .GroupBy(l => l.MachineId)
-                .Select(g => g.Max(l => l.Id))
+                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
                 .ToListAsync();
-
-            var pendingLocks = await _db.MachineLockLogs
-                .Where(l => latestPendingIds.Contains(l.Id))
-                .ToListAsync();
-            var pendingDict = pendingLocks.ToDictionary(l => l.MachineId);
+            var pendingDict = pendingLocks.Where(l => l != null).ToDictionary(l => l!.MachineId);
 
             // ── Active machines ──────────────────────────────────────────────
             // Exclude ADMS push machines — lock/unlock requires ZKemKeeper DLL
@@ -278,17 +264,16 @@ namespace ServiceHub.Areas.HR.Controllers
                 .ToListAsync();
 
             // ── Store lookup by StoreCode = machine.Location ─────────────────
-            // Include Area and Region so store?.Area?.Name is not null
-            var storeCodes = machines
-                .Where(m => !string.IsNullOrEmpty(m.Location))
-                .Select(m => m.Location!)
-                .Distinct()
-                .ToList();
+            // Use a database-side filter to avoid passing large lists to .Contains()
+            var activeLocationSubquery = _db.AttendenceMachines
+                .Where(m => m.IsActive && (m.SerialNumber == null || m.SerialNumber == "") && m.Location != null && m.Location != "")
+                .Select(m => m.Location)
+                .Distinct();
 
             var stores = await _db.Stores
                 .Include(s => s.Area)
                 .Include(s => s.Region)
-                .Where(s => s.StoreCode != null && storeCodes.Contains(s.StoreCode))
+                .Where(s => s.StoreCode != null && activeLocationSubquery.Contains(s.StoreCode))
                 .ToListAsync();
 
             // Use GroupBy to safely handle any duplicate StoreCode rows
