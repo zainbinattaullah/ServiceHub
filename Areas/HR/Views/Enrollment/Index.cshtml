@@ -144,9 +144,8 @@
                 $.ajax({
                     url: '/HR/Enrollment/ToggleActive',
                     type: 'POST',
-                    contentType: 'application/json',
                     headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
-                    data: JSON.stringify({ employeeCode: code }),
+                    data: { employeeCode: code },
                     success: function (res) {
                         if (res.success) {
                             table.ajax.reload(null, false);

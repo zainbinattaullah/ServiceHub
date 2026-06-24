@@ -247,14 +247,14 @@
                 <option value="Unlocked">Unlocked</option>
             </select>
         </div>
-        <div class="fg">
+        @* <div class="fg">
             <label>Connectivity</label>
             <select id="fConn">
                 <option value="">All</option>
                 <option value="Online">Online</option>
                 <option value="Offline">Offline</option>
             </select>
-        </div>
+        </div> *@
         <div class="fg" style="flex-direction:row;align-items:flex-end;gap:6px;min-width:auto;">
             <button class="btn btn-primary btn-sm" id="btnApply" style="height:32px;padding:0 14px;">
                 <i class="fas fa-filter"></i> Apply
@@ -320,7 +320,7 @@
                         <th>Area</th>
                         <th>Region</th>
                         <th>Lock Status</th>
-                        <th>Connectivity</th>
+                        @* <th>Connectivity</th> *@
                         <th>Last Sync</th>
                         <th>Last Action</th>
                         <th>Action By</th>
@@ -401,7 +401,7 @@ $(function () {
     }
 
     // Initialize Select2 on filter dropdowns
-    $('#fLoc, #fArea, #fRegion, #fLock, #fConn').select2({
+    $('#fLoc, #fArea, #fRegion, #fLock').select2({
         width: '100%',
         minimumResultsForSearch: 5
     });
@@ -542,11 +542,11 @@ $(function () {
                 orderable: false,
                 render  : function (data, type, row) { return renderLockStatus(row); }
             },
-            {
-                data    : 'isOnline',
-                orderable: false,
-                render  : function (data) { return renderConn(data); }
-            },
+            // {
+            //     data    : 'isOnline',
+            //     orderable: false,
+            //     render  : function (data) { return renderConn(data); }
+            // },
             { data: 'lastCommLabel',   defaultContent: 'Never' },
             {
                 data  : 'lastActionLabel',

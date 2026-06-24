@@ -6,6 +6,7 @@ using ServiceHub.Areas.HR.Models;
 using ServiceHub.Data;
 using ServiceHub.Models;
 using System.Diagnostics;
+using System.Threading;
 
 namespace ServiceHub.Controllers
 {
@@ -102,7 +103,13 @@ namespace ServiceHub.Controllers
             var empNos = enrolled.Select(e => e.EmpNo).ToList();
 
             // Get all machine names for lookup
-            var machines = _db.AttendenceMachines.AsNoTracking().ToDictionary(m => m.IpAddress ?? "", m => m.Name ?? m.IpAddress ?? "");
+            var machines = _db.AttendenceMachines
+                            .AsNoTracking()
+                            .GroupBy(m => m.IpAddress ?? "")
+                            .ToDictionary(
+                                g => g.Key,
+                                g => g.Select(m => m.Name ?? m.IpAddress ?? "").First()
+                            );
 
             var latestSwaps = _db.HR_Swap_Record
                 .AsNoTracking()
@@ -264,6 +271,59 @@ namespace ServiceHub.Controllers
                 Machines              = machineFilter,
                 RecentActivity        = recent
             };
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RefreshConnectivity()
+        {
+            var machines = await _db.AttendenceMachines
+                .Where(m => m.IsActive && (m.SerialNumber == null || m.SerialNumber == ""))
+                .Select(m => new { m.IpAddress, m.Port, m.Name })
+                .ToListAsync();
+
+            var semaphore = new SemaphoreSlim(10);
+            var tasks = machines.Select(async m =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    bool online = await Task.Run(() => IsMachineReachable(m.IpAddress, m.Port));
+                    return new { m.IpAddress, m.Name, Online = online };
+                }
+                finally { semaphore.Release(); }
+            });
+
+            var results = await Task.WhenAll(tasks);
+            return Json(new
+            {
+                online  = results.Count(r => r.Online),
+                offline = results.Count(r => !r.Online),
+                details = results
+            });
+        }
+
+        private static bool IsMachineReachable(string ip, int port = 4370)
+        {
+            try
+            {
+                using var icmp = new System.Net.NetworkInformation.Ping();
+                var reply = icmp.Send(ip, 2000);
+                if (reply?.Status == System.Net.NetworkInformation.IPStatus.Success)
+                    return true;
+            }
+            catch { }
+            try
+            {
+                using var tcp = new System.Net.Sockets.TcpClient();
+                var ar = tcp.BeginConnect(ip, port, null, null);
+                if (ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(2)) && tcp.Connected)
+                {
+                    tcp.EndConnect(ar);
+                    return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         public IActionResult Privacy() => View();

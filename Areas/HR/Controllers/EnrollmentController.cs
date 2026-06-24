@@ -292,13 +292,13 @@ namespace ServiceHub.Areas.HR.Controllers
         // ── POST: ToggleActive — flip IsActive for all enrollments of an employee
         //         and queue a device command so the Windows Service updates ZKTeco.
         [HttpPost]
-        public async Task<IActionResult> ToggleActive([FromBody] ToggleActiveRequest req)
+        public async Task<IActionResult> ToggleActive(string employeeCode)
         {
-            if (req == null || string.IsNullOrWhiteSpace(req.EmployeeCode))
+            if (string.IsNullOrWhiteSpace(employeeCode))
                 return Json(new { success = false, message = "Employee code required." });
 
             var enrollments = await _dbContext.EmployeeEnrollments
-                .Where(e => e.EmployeeCode == req.EmployeeCode)
+                .Where(e => e.EmployeeCode == employeeCode)
                 .ToListAsync();
 
             if (!enrollments.Any())
@@ -313,14 +313,14 @@ namespace ServiceHub.Areas.HR.Controllers
             // Mirror in biometric log table
             await _dbContext.Database.ExecuteSqlRawAsync(
                 "UPDATE Employee_Biometric_Log SET IsActive = {0}, LastUpdated = GETDATE() WHERE Emp_No = {1}",
-                newState ? 1 : 0, req.EmployeeCode);
+                newState ? 1 : 0, employeeCode);
 
             string userId   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "System";
             string userName = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "System";
 
             _dbContext.EmployeeDeviceCommands.Add(new EmployeeDeviceCommand
             {
-                EmployeeCode        = req.EmployeeCode,
+                EmployeeCode        = employeeCode,
                 EmployeeName        = enrollments.First().EmployeeName,
                 Action              = action,
                 Status              = "Pending",
@@ -332,11 +332,6 @@ namespace ServiceHub.Areas.HR.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Json(new { success = true, isActive = newState, action });
-        }
-
-        public class ToggleActiveRequest
-        {
-            public string EmployeeCode { get; set; }
         }
     }
 }

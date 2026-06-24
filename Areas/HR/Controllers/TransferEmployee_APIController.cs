@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using ServiceHub.Controllers;
 using ServiceHub.Data;
 using ServiceHub.Models;
+using System.Threading;
 
 namespace ServiceHub.Areas.HR.Controllers
 {
@@ -43,16 +44,25 @@ namespace ServiceHub.Areas.HR.Controllers
                     .Select(m => new { m.IpAddress, m.Port, m.Location, m.Name })
                     .ToListAsync();
 
+                var semaphore = new SemaphoreSlim(10);
                 var statusTasks = machines.Select(async m =>
                 {
-                    bool isOnline = await Task.Run(() => IsMachineReachable(m.IpAddress, m.Port));
-                    string displayName = (!string.IsNullOrWhiteSpace(m.Location) ? m.Location : m.Name) + " - " + m.IpAddress;
-                    return new
+                    await semaphore.WaitAsync();
+                    try
                     {
-                        Value    = m.IpAddress,
-                        Label    = displayName + (isOnline ? " (Online)" : " (Offline)"),
-                        IsOnline = isOnline
-                    };
+                        bool isOnline = await Task.Run(() => IsMachineReachable(m.IpAddress, m.Port));
+                        string displayName = (!string.IsNullOrWhiteSpace(m.Location) ? m.Location : m.Name) + " - " + m.IpAddress;
+                        return new
+                        {
+                            Value    = m.IpAddress,
+                            Label    = displayName + (isOnline ? " (Online)" : " (Offline)"),
+                            IsOnline = isOnline
+                        };
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 });
 
                 var result = await Task.WhenAll(statusTasks);
