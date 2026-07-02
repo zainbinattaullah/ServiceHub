@@ -454,7 +454,11 @@ namespace ServiceHub.Areas.HR.Controllers
                 .Select(m => m.Location).Distinct().ToList();
 
             var stores = storeCodes.Count > 0
-                ? await _db.Stores.Where(s => storeCodes.Contains(s.StoreCode)).ToListAsync()
+                ? await _db.Stores
+                    .Where(s => storeCodes.Contains(s.StoreCode))
+                    .Include(s => s.Area)
+                    .Include(s => s.Region)
+                    .ToListAsync()
                 : new List<Store>();
 
             var storeDict = stores

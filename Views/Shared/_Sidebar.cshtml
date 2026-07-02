@@ -28,7 +28,7 @@
                 @await Component.InvokeAsync("SidebarMenu")
 
                 <!-- ── Admin-only fixed items ─────────────────────────── -->
-                @if (User.IsInRole("Admin"))
+                @* @if (User.IsInRole("Admin"))
                 {
                     <!-- ── User Administration (treeview) ─────────── -->
                     <li class="nav-item">
@@ -62,8 +62,8 @@
                     </li>
 
                     @* Menu Management is now a DB-driven item
-                       under the "Administration & Security" parent group. *@
-                }
+                       under the "Administration & Security" parent group. 
+                } *@
 
             </ul>
         </nav>
