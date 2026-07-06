@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 using ServiceHub.Controllers;
 using ServiceHub.Data;
 using ServiceHub.Models;
-using System.Threading;
 
 namespace ServiceHub.Areas.HR.Controllers
 {
@@ -44,60 +43,22 @@ namespace ServiceHub.Areas.HR.Controllers
                     .Select(m => new { m.IpAddress, m.Port, m.Location, m.Name })
                     .ToListAsync();
 
-                var semaphore = new SemaphoreSlim(10);
-                var statusTasks = machines.Select(async m =>
+                var result = machines.Select(m =>
                 {
-                    await semaphore.WaitAsync();
-                    try
+                    string displayName = (!string.IsNullOrWhiteSpace(m.Location) ? m.Location : m.Name) + " - " + m.IpAddress;
+                    return new
                     {
-                        bool isOnline = await Task.Run(() => IsMachineReachable(m.IpAddress, m.Port));
-                        string displayName = (!string.IsNullOrWhiteSpace(m.Location) ? m.Location : m.Name) + " - " + m.IpAddress;
-                        return new
-                        {
-                            Value    = m.IpAddress,
-                            Label    = displayName + (isOnline ? " (Online)" : " (Offline)"),
-                            IsOnline = isOnline
-                        };
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
+                        Value = m.IpAddress,
+                        Label = displayName
+                    };
                 });
 
-                var result = await Task.WhenAll(statusTasks);
-                return Json(result.OrderByDescending(m => m.IsOnline).ThenBy(m => m.Label));
+                return Json(result);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "Error getting machine IPs: " + ex.Message);
             }
-        }
-        private static bool IsMachineReachable(string ip, int port = 4370)
-        {
-            // Layer 1: ICMP ping
-            try
-            {
-                using var icmp = new System.Net.NetworkInformation.Ping();
-                var reply = icmp.Send(ip, 2000);
-                if (reply?.Status == System.Net.NetworkInformation.IPStatus.Success)
-                    return true;
-            }
-            catch { }
-            // Layer 2: TCP connect on ZKTeco port
-            try
-            {
-                using var tcp = new System.Net.Sockets.TcpClient();
-                var ar = tcp.BeginConnect(ip, port, null, null);
-                if (ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(2)) && tcp.Connected)
-                {
-                    tcp.EndConnect(ar);
-                    return true;
-                }
-            }
-            catch { }
-
-            return false;
         }
         // Endpoint to transfer employees
         [HttpPost]

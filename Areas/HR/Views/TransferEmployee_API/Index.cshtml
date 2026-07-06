@@ -153,17 +153,13 @@
                 multiple: true
             });
 
-            // Load machine IPs into the dropdowns with real-time online/offline status
+            // Load machine IPs into the dropdowns
             $.get("/HR/TransferEmployee_API/GetMachineIPs", function (data) {
                 data.forEach(function (machine) {
                     var opt = $("<option>", {
                         value: machine.value,
                         text:  machine.label
                     });
-                    if (!machine.isOnline) {
-                        opt.prop("disabled", true);
-                        opt.css("color", "#999");
-                    }
                     $("#machineIPs").append(opt.clone());
                     $("#destinationIP").append(opt.clone());
                 });
@@ -364,7 +360,7 @@
                         async: false,
                         success: function (response) {
                             destinationIPs = response
-                                .filter(m => m.value !== sourceIP && m.isOnline)
+                                .filter(m => m.value !== sourceIP)
                                 .map(m => m.value);
                         },
                         error: function (xhr, status, error) {
@@ -442,25 +438,20 @@
 
             // Handle "Transfer All Machines" checkbox
             $("#transferAllMachines").change(function () {
-                var sourceIP = $("#machineIPs").val(); // Get selected source IP
+                var sourceIP = $("#machineIPs").val();
                 if ($(this).is(":checked")) {
-                     // Select only online machines that are not the source
-                         $("#destinationIP > option").each(function () {
-                             var isDisabled = $(this).prop("disabled");
-                             if ($(this).val() !== sourceIP && $(this).val() !== "" && !isDisabled) {
-                                 $(this).prop("selected", true);
-                             } else {
-                                 $(this).prop("selected", false);
-                             }
-                         });
+                    $("#destinationIP > option").each(function () {
+                        if ($(this).val() !== sourceIP && $(this).val() !== "") {
+                            $(this).prop("selected", true);
+                        } else {
+                            $(this).prop("selected", false);
+                        }
+                    });
                 } else {
-                    // Deselect all machines in the dropdown
                     $("#destinationIP > option").prop("selected", false);
                     $("#destinationIP").trigger("change");
-                    // Enable the destination dropdown since "Transfer All Machines" is unchecked
                     $("#destinationIP").prop("disabled", false);
                 }
-                // Update the UI to reflect the selected items
                 updateSelectedItemsDisplay();
                 validateTransferButton();
             });
