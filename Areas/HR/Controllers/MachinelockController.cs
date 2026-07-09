@@ -63,6 +63,7 @@ namespace ServiceHub.Areas.HR.Controllers
             var fRegion = (form["filterRegion"].FirstOrDefault() ?? "").Trim();
 
             var rows = await BuildDashboardRowsAsync();
+            int totalMachines = rows.Count;
 
             // Apply filters
             if (!string.IsNullOrEmpty(fLoc))
@@ -88,6 +89,9 @@ namespace ServiceHub.Areas.HR.Controllers
                 rows = rows.Where(r =>(r.MachineName ?? "").ToLower().Contains(search) ||(r.MachineIP ?? "").ToLower().Contains(search) ||(r.StoreName ?? "").ToLower().Contains(search) ||(r.Location ?? "").ToLower().Contains(search) || (r.Area ?? "").ToLower().Contains(search) ||(r.Region ?? "").ToLower().Contains(search)).ToList();
 
             int total = rows.Count;
+            int totalLocked   = rows.Count(r => r.IsLocked);
+            int totalUnlocked = rows.Count(r => !r.IsLocked);
+            int totalPending  = rows.Count(r => r.HasPending);
             var pageData = rows.Skip(start).Take(length).ToList();
 
             return Json(new
@@ -95,6 +99,10 @@ namespace ServiceHub.Areas.HR.Controllers
                 draw,
                 recordsTotal = total,
                 recordsFiltered = total,
+                totalMachines,
+                totalLocked,
+                totalUnlocked,
+                totalPending,
                 data = pageData.Select(r => new
                 {
                     r.MachineId,

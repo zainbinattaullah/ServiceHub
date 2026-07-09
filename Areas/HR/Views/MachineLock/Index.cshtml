@@ -499,17 +499,11 @@ $(function () {
                 return d;
             },
             dataSrc: function (json) {
-                // Update summary cards
-                var rows     = json.data || [];
-                var total    = json.recordsTotal || 0;
-                var locked   = rows.filter(r => r.isLocked).length;
-                var unlocked = rows.filter(r => !r.isLocked).length;
-                var pending  = rows.filter(r => r.hasPending).length;
-                animateCount('cntTotal',    total);
-                animateCount('cntLocked',   locked);
-                animateCount('cntUnlocked', unlocked);
-                animateCount('cntPending',  pending);
-                return rows;
+                animateCount('cntTotal',    json.totalMachines || 0);
+                animateCount('cntLocked',   json.totalLocked   || 0);
+                animateCount('cntUnlocked', json.totalUnlocked || 0);
+                animateCount('cntPending',  json.totalPending  || 0);
+                return json.data || [];
             },
             error: function (xhr, err) { console.error('MachineLock AJAX error:', err); }
         },
