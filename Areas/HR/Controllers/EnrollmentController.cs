@@ -333,5 +333,75 @@ namespace ServiceHub.Areas.HR.Controllers
 
             return Json(new { success = true, isActive = newState, action });
         }
+
+        // ── POST: Delete — delete employee from device and remove DB records
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var enrollment = await _dbContext.EmployeeEnrollments.FindAsync(id);
+            if (enrollment == null)
+                return Json(new { success = false, message = "Enrollment not found." });
+
+            string empNo = enrollment.EmployeeCode;
+            string machineIP = enrollment.MachineIP;
+
+            var client = _httpClientFactory.CreateClient("EmployeeApi");
+            try
+            {
+                var response = await client.PostAsJsonAsync("api/employees/delete/", new
+                {
+                    EmployeeCode = empNo,
+                    MachineIP = machineIP
+                });
+
+                string body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Delete API returned {Status} for enrollment {Id}: {Body}",
+                        (int)response.StatusCode, id, body);
+                    return StatusCode((int)response.StatusCode, body);
+                }
+
+                // Parse the result to check for device-offline
+                bool apiSuccess = false;
+                string apiMessage = null;
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(body);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("success", out var s))
+                        apiSuccess = s.GetBoolean();
+                    if (root.TryGetProperty("message", out var m))
+                        apiMessage = m.GetString();
+                }
+                catch { apiMessage = body; }
+
+                if (!apiSuccess)
+                {
+                    return Json(new { success = false, message = apiMessage ?? "Device returned an error." });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "HTTP request to Employee API failed for delete enrollment {Id}", id);
+                return StatusCode(502, new { success = false, message = "Failed to contact Employee API." });
+            }
+
+            // Permanently delete DB records
+            _dbContext.EmployeeEnrollments.Remove(enrollment);
+
+            var bioLogs = await _dbContext.Employee_Biometric_Log
+                .Where(b => b.EmpNo == empNo && b.MachineIP == machineIP)
+                .ToListAsync();
+            if (bioLogs.Any())
+                _dbContext.Employee_Biometric_Log.RemoveRange(bioLogs);
+
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted enrollment {Id} — employee {EmpNo} from {MachineIP}", id, empNo, machineIP);
+
+            return Json(new { success = true, message = $"Employee {empNo} deleted from {machineIP}." });
+        }
     }
 }

@@ -99,6 +99,10 @@
                         disabled="@(!ViewBag.IsTransferWindowOpen)">
                     Transfer Selected Employees
                 </button>
+                <button id="deleteButton" class="btn btn-gradient-danger mt-3"
+                        disabled="@(!ViewBag.IsTransferWindowOpen)">
+                    <i class="fas fa-trash me-1"></i>Delete Selected
+                </button>
 
             </div>
         </div>
@@ -113,8 +117,9 @@
 
                  function checkTransferWindow() {
                      $.get("/HR/TransferEmployee_API/CheckTransferWindow", function(data) {
-                         // Update UI
-                         $("#transferButton").prop("disabled", !data.isOpen);
+                          // Update UI
+                          $("#transferButton").prop("disabled", !data.isOpen);
+                          $("#deleteButton").prop("disabled", !data.isOpen);
                          $(".time-window-alert")
                              .toggleClass("time-window-open", data.isOpen)
                              .toggleClass("time-window-closed", !data.isOpen);
@@ -414,6 +419,91 @@
                         }
                     });
                 }
+            });
+
+            // Handle delete button click
+            $("#deleteButton").click(function () {
+                if ($(this).prop("disabled")) {
+                    alert(transferWindowMessage);
+                    return false;
+                }
+                var sourceIP = $("#machineIPs").val();
+                var employeeValues = $("#employeeDropdown").val();
+                var transferAllEmployees = $("#transferAllEmployees").is(":checked");
+
+                if (!sourceIP) {
+                    alert("Please select a source IP.");
+                    return;
+                }
+                if (!transferAllEmployees && (!employeeValues || employeeValues.length === 0)) {
+                    alert("Please select at least one employee or check 'Transfer All Employees'.");
+                    return;
+                }
+
+                // Build employee list
+                var employees = [];
+                if (transferAllEmployees) {
+                    $.ajax({
+                        url: "/HR/TransferEmployee_API/GetEmployees",
+                        type: "POST",
+                        contentType: "application/json",
+                        async: false,
+                        data: JSON.stringify([sourceIP]),
+                        success: function (response) {
+                            if (!Array.isArray(response) || response.length === 0) {
+                                alert("No employees found on the source machine.");
+                                return;
+                            }
+                            employees = response.map(emp => ({
+                                EmpNo: emp.EmpNo || emp.empNo,
+                                EmpName: emp.EmpName || emp.empName || null
+                            }));
+                        },
+                        error: function (xhr, status, error) {
+                            alert("Failed to fetch employees: " + error);
+                            return;
+                        }
+                    });
+                } else {
+                    var selectedOptions = $("#employeeDropdown").select2('data');
+                    employees = selectedOptions.map(function(item) {
+                        if (item.id && item.text) {
+                            return { EmpNo: item.id, EmpName: item.text };
+                        }
+                        return null;
+                    }).filter(Boolean);
+                }
+
+                if (employees.length === 0) {
+                    alert("No employees to delete.");
+                    return;
+                }
+
+                if (!confirm('Permanently delete ' + employees.length + ' employee(s) from device ' + sourceIP + '?\nThis will remove users, fingerprints, and face templates from the device and delete any associated records.')) return;
+
+                var btn = $(this);
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Deleting...');
+
+                $.ajax({
+                    url: "/HR/TransferEmployee_API/DeleteEmployees",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ SourceIP: sourceIP, Employees: employees }),
+                    success: function (response) {
+                        try {
+                            var successCount = response?.SuccessCount ?? 0;
+                            var failCount = response?.FailCount ?? 0;
+                            alert('Delete completed.\nSuccess: ' + successCount + '\nFailed: ' + failCount);
+                        } catch (e) {
+                            alert("Failed to parse response: " + e.message);
+                        }
+                        location.reload();
+                    },
+                    error: function (xhr, status, error) {
+                        alert("Failed to delete employees: " + xhr.responseText);
+                        location.reload();
+                    }
+                });
             });
 
             // Handle "Transfer All Employees" checkbox

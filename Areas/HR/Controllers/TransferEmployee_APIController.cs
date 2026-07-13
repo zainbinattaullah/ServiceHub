@@ -233,6 +233,125 @@ namespace ServiceHub.Areas.HR.Controllers
             }
         }       
 
+        // Endpoint to delete employees from source machine
+        [HttpPost]
+        public async Task<IActionResult> DeleteEmployees([FromBody] DeleteEmployeesRequest request)
+        {
+            try
+            {
+                if (!_timeWindowService.IsTransferWindowOpen())
+                {
+                    return StatusCode(403, new
+                    {
+                        SuccessCount = 0,
+                        FailCount = 0,
+                        Message = _timeWindowService.GetTransferWindowMessage()
+                    });
+                }
+
+                if (request == null || string.IsNullOrWhiteSpace(request.SourceIP) || request.Employees == null || request.Employees.Count == 0)
+                {
+                    return BadRequest(new { SuccessCount = 0, FailCount = 0, Message = "SourceIP and at least one employee are required." });
+                }
+
+                int successCount = 0;
+                int failCount = 0;
+                var errors = new List<string>();
+
+                foreach (var emp in request.Employees)
+                {
+                    try
+                    {
+                        using (var client = new HttpClient())
+                        {
+                            client.Timeout = TimeSpan.FromMinutes(2);
+                            var response = await client.PostAsJsonAsync("http://localhost:5000/api/employees/delete/", new
+                            {
+                                EmployeeCode = emp.EmpNo,
+                                MachineIP = request.SourceIP
+                            });
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                string body = await response.Content.ReadAsStringAsync();
+                                failCount++;
+                                errors.Add($"{emp.EmpNo}: {body}");
+                                _logger.LogWarning("Delete API returned {Status} for {EmpNo} on {IP}: {Body}",
+                                    (int)response.StatusCode, emp.EmpNo, request.SourceIP, body);
+                                continue;
+                            }
+
+                            // Parse response to check device result
+                            string respBody = await response.Content.ReadAsStringAsync();
+                            bool apiSuccess = false;
+                            try
+                            {
+                                using var doc = System.Text.Json.JsonDocument.Parse(respBody);
+                                var root = doc.RootElement;
+                                if (root.TryGetProperty("success", out var s))
+                                    apiSuccess = s.GetBoolean();
+                            }
+                            catch { }
+
+                            if (!apiSuccess)
+                            {
+                                failCount++;
+                                errors.Add($"{emp.EmpNo}: device returned failure");
+                                continue;
+                            }
+                        }
+
+                        // Clean up any DB records for this employee on this machine
+                        try
+                        {
+                            var enrollments = await _dbcontext.EmployeeEnrollments
+                                .Where(e => e.EmployeeCode == emp.EmpNo && e.MachineIP == request.SourceIP)
+                                .ToListAsync();
+                            if (enrollments.Any())
+                                _dbcontext.EmployeeEnrollments.RemoveRange(enrollments);
+
+                            var bioLogs = await _dbcontext.Employee_Biometric_Log
+                                .Where(b => b.EmpNo == emp.EmpNo && b.MachineIP == request.SourceIP)
+                                .ToListAsync();
+                            if (bioLogs.Any())
+                                _dbcontext.Employee_Biometric_Log.RemoveRange(bioLogs);
+
+                            await _dbcontext.SaveChangesAsync();
+                        }
+                        catch (Exception dbEx)
+                        {
+                            _logger.LogWarning(dbEx, "DB cleanup failed for {EmpNo} on {IP}", emp.EmpNo, request.SourceIP);
+                        }
+
+                        successCount++;
+                        _logger.LogInformation("Deleted employee {EmpNo} from device {IP}", emp.EmpNo, request.SourceIP);
+                    }
+                    catch (Exception ex)
+                    {
+                        failCount++;
+                        errors.Add($"{emp.EmpNo}: {ex.Message}");
+                        _logger.LogError(ex, "Delete failed for {EmpNo} on {IP}", emp.EmpNo, request.SourceIP);
+                    }
+                }
+
+                string summary = $"[SUMMARY] Success: {successCount}, Failed: {failCount}.";
+                if (errors.Any())
+                    summary += " Errors: " + string.Join("; ", errors);
+
+                return Ok(new { SuccessCount = successCount, FailCount = failCount, Message = summary });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during employee deletion");
+                return StatusCode(500, new
+                {
+                    SuccessCount = 0,
+                    FailCount = 0,
+                    Message = $"Internal server error: {ex.Message}"
+                });
+            }
+        }
+
         // Model for multiple transfer request
         public class MultipleTransferRequest
         {
@@ -247,6 +366,12 @@ namespace ServiceHub.Areas.HR.Controllers
         {
             public string EmpNo { get; set; }
             public string? EmpName { get; set; }
+        }
+
+        public class DeleteEmployeesRequest
+        {
+            public string SourceIP { get; set; }
+            public List<EmployeeTransfer> Employees { get; set; }
         }
     }
 }

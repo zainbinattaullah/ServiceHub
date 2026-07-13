@@ -82,7 +82,8 @@
                                 : '<i class="fas fa-user-check me-1"></i>Activate';
                             var toggleClass = row.isActive ? 'btn-danger' : 'btn-success';
                             var toggleBtn = '<button class="btn btn-sm ' + toggleClass + ' toggle-active" data-code="' + row.employeeCode + '" data-active="' + row.isActive + '">' + toggleLabel + '</button>';
-                            return retryBtn + toggleBtn;
+                            var deleteBtn = '<button class="btn btn-sm btn-danger delete-emp ms-1" data-id="' + row.id + '" data-code="' + row.employeeCode + '" data-machine="' + row.machineIP + '"><i class="fas fa-trash me-1"></i>Delete</button>';
+                            return retryBtn + toggleBtn + deleteBtn;
                         }
                     }
                 ],
@@ -157,6 +158,37 @@
                     error: function (xhr) {
                         alert('Server error: ' + xhr.status);
                         btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Delete employee from device
+            $('#enrollmentsTable').on('click', '.delete-emp', function () {
+                var btn = $(this);
+                var id = btn.data('id');
+                var code = btn.data('code');
+                var machine = btn.data('machine');
+
+                if (!confirm('Permanently delete employee ' + code + ' from device ' + machine + '?\nThis will remove the user, fingerprints, and face templates from the device and delete all associated records.')) return;
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Deleting...');
+
+                $.ajax({
+                    url: '/HR/Enrollment/Delete',
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    data: { id: id },
+                    success: function (res) {
+                        if (res.success) {
+                            table.ajax.reload(null, false);
+                        } else {
+                            alert('Failed: ' + (res.message || 'Unknown error'));
+                            btn.prop('disabled', false).html('<i class="fas fa-trash me-1"></i>Delete');
+                        }
+                    },
+                    error: function (xhr) {
+                        alert('Server error: ' + xhr.status + ' - ' + xhr.responseText);
+                        btn.prop('disabled', false).html('<i class="fas fa-trash me-1"></i>Delete');
                     }
                 });
             });
