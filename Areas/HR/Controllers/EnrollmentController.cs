@@ -345,47 +345,25 @@ namespace ServiceHub.Areas.HR.Controllers
             string empNo = enrollment.EmployeeCode;
             string machineIP = enrollment.MachineIP;
 
-            var client = _httpClientFactory.CreateClient("EmployeeApi");
             try
             {
+                var client = _httpClientFactory.CreateClient("EmployeeApi");
                 var response = await client.PostAsJsonAsync("api/employees/delete/", new
                 {
                     EmployeeCode = empNo,
                     MachineIP = machineIP
                 });
 
-                string body = await response.Content.ReadAsStringAsync();
-
                 if (!response.IsSuccessStatusCode)
                 {
+                    string body = await response.Content.ReadAsStringAsync();
                     _logger.LogWarning("Delete API returned {Status} for enrollment {Id}: {Body}",
                         (int)response.StatusCode, id, body);
-                    return StatusCode((int)response.StatusCode, body);
-                }
-
-                // Parse the result to check for device-offline
-                bool apiSuccess = false;
-                string apiMessage = null;
-                try
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(body);
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("success", out var s))
-                        apiSuccess = s.GetBoolean();
-                    if (root.TryGetProperty("message", out var m))
-                        apiMessage = m.GetString();
-                }
-                catch { apiMessage = body; }
-
-                if (!apiSuccess)
-                {
-                    return Json(new { success = false, message = apiMessage ?? "Device returned an error." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "HTTP request to Employee API failed for delete enrollment {Id}", id);
-                return StatusCode(502, new { success = false, message = "Failed to contact Employee API." });
+                _logger.LogWarning(ex, "Device deletion failed for {EmpNo} — proceeding with DB cleanup.", empNo);
             }
 
             // Permanently delete DB records
